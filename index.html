@@ -1644,8 +1644,8 @@ function ico(name,size,cls){return '<svg class="ico'+(cls?' '+cls:'')+'" width="
 /* ============================================================
    MOTOR DE BUSCA DO ALMOXARIFADO
    1) entende o que foi digitado (material/serviço -> segmentos)
-   2) varre as fontes (OpenStreetMap, Geoapify, Google opcional)
-   3) consolida, remove duplicados, classifica e pontua
+   2) varre a Geoapify (fonte única, chave obrigatória)
+   3) classifica por categoria/tag/nome, remove duplicados e pontua
    ============================================================ */
 const SEG=Object.fromEntries(SEGMENTS.map(s=>[s.id,s]));
 const norm=s=>String(s==null?"":s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9,]+/g," ").replace(/\s+/g," ").trim();
@@ -1705,45 +1705,18 @@ async function httpJson(url,opt,signal){let res;try{res=await fetch(url,{...(opt
  let data=null;try{data=await res.json()}catch(e){data=null}
  if(!res.ok){const er=new Error((data&&(data.message||data.error))||("HTTP "+res.status));er.status=res.status;throw er}return data}
 
-/* ---------- geocodificação ---------- */
+/* ---------- geocodificação (Geoapify) ---------- */
 async function geocode(place,signal){
+ if(!settings.geoKey)throw new Error("Cole sua chave da Geoapify em Ajustes para localizar o endereço.");
  const cache=store.get("geocache",{});const k=norm(place);if(cache[k])return cache[k];
- let g=null;
- try{const u="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&accept-language=pt-BR&countrycodes=br&q="+encodeURIComponent(place);
-  const d=await httpJson(u,{headers:{"Accept":"application/json"}},signal);
-  if(d&&d[0])g={lat:+d[0].lat,lon:+d[0].lon,label:shortLabel(d[0])};
- }catch(e){if(e.name==="AbortError")throw e}
- if(!g&&settings.geoKey){const u=new URL("https://api.geoapify.com/v1/geocode/search");u.searchParams.set("text",place);u.searchParams.set("lang","pt");u.searchParams.set("limit","1");u.searchParams.set("filter","countrycode:br");u.searchParams.set("format","json");u.searchParams.set("apiKey",settings.geoKey);
-  const d=await httpJson(u.href,null,signal);const r=d&&d.results&&d.results[0];if(r)g={lat:+r.lat,lon:+r.lon,label:[r.city||r.name,r.state_code||r.state].filter(Boolean).join(", ")||r.formatted}}
+ const u=new URL("https://api.geoapify.com/v1/geocode/search");u.searchParams.set("text",place);u.searchParams.set("lang","pt");u.searchParams.set("limit","1");u.searchParams.set("filter","countrycode:br");u.searchParams.set("format","json");u.searchParams.set("apiKey",settings.geoKey);
+ const d=await httpJson(u.href,null,signal);const r=d&&d.results&&d.results[0];
+ const g=r?{lat:+r.lat,lon:+r.lon,label:[r.city||r.suburb||r.name,r.state_code||r.state].filter(Boolean).join(", ")||r.formatted}:null;
  if(!g)throw new Error("Não encontrei \""+place+"\". Tente cidade e estado, ex.: Fortaleza, CE.");
  cache[k]=g;const keys=Object.keys(cache);if(keys.length>60)delete cache[keys[0]];store.set("geocache",cache);return g;
 }
-function shortLabel(n){const a=n.address||{};const city=a.city||a.town||a.village||a.municipality||a.county||"";const st=(a["ISO3166-2-lvl4"]||"").replace("BR-","")||a.state||"";const sub=a.suburb||a.neighbourhood||a.city_district||"";const base=[city,st].filter(Boolean).join(", ");return (sub&&n.addresstype!=="city"&&n.type!=="city"?sub+" · ":"")+(base||n.display_name.split(",").slice(0,2).join(","))}
-async function reverseGeocode(lat,lon){try{const d=await httpJson("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&addressdetails=1&accept-language=pt-BR&lat="+lat+"&lon="+lon);return d?shortLabel(d):""}catch(e){return ""}}
-
-/* ---------- FONTE 1: OpenStreetMap / Overpass (sem chave) ---------- */
-const OVERPASS=["https://overpass-api.de/api/interpreter","https://overpass.private.coffee/api/interpreter","https://maps.mail.ru/osm/tools/overpass/api/interpreter","https://overpass.kumi.systems/api/interpreter"];
-function buildOverpass(segIds,extraWords,center,radius){
- const around="(around:"+Math.round(radius)+","+center.lat.toFixed(6)+","+center.lon.toFixed(6)+")";
- const sels=new Set(),words=new Set(extraWords||[]);
- segIds.forEach(id=>{const s=SEG[id];s.osm.forEach(x=>sels.add(x));s.kw.forEach(w=>words.add(w))});
- const lines=[...sels].map(s=>"  nwr"+s+around+";");
- const wl=[...words].filter(w=>norm(w).length>=2);
- if(wl.length){const rx=wl.map(fold2rx).join("|").replace(/\\/g,"\\\\").replace(/"/g,'\\"');lines.push('  nwr["name"~"'+rx+'",i]'+around+";")}
- return "[out:json][timeout:90];\n(\n"+lines.join("\n")+"\n);\nout tags center 1500;";
-}
-async function overpassRun(query,signal,onTry){
- let last;const start=Math.floor(Math.random()*2);
- for(let k=0;k<OVERPASS.length;k++){const ep=OVERPASS[(start+k)%OVERPASS.length];
-  try{onTry&&onTry(new URL(ep).hostname);
-   const d=await httpJson(ep,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:"data="+encodeURIComponent(query)},signal);
-   if(d&&Array.isArray(d.elements))return d.elements;last=new Error("Resposta inválida")}
-  catch(e){if(e.name==="AbortError")throw e;last=e}}
- throw last||new Error("OpenStreetMap indisponível");
-}
-function fromOsm(el){const t=el.tags||{};const lat=el.lat!=null?el.lat:el.center&&el.center.lat,lon=el.lon!=null?el.lon:el.center&&el.center.lon;
- const name=t.name||t.brand||t["name:pt"]||t.operator||"";if(!name||lat==null)return null;
- return mkRecord({id:"osm:"+el.type[0]+el.id,name,lat,lon,tags:t,src:"osm"})}
+async function reverseGeocode(lat,lon){if(!settings.geoKey)return "";try{const u=new URL("https://api.geoapify.com/v1/geocode/reverse");u.searchParams.set("lat",lat);u.searchParams.set("lon",lon);u.searchParams.set("lang","pt");u.searchParams.set("format","json");u.searchParams.set("apiKey",settings.geoKey);
+ const d=await httpJson(u.href);const r=d&&d.results&&d.results[0];if(!r)return "";return [r.suburb||r.city||r.name,r.state_code||r.state].filter(Boolean).join(", ")||r.formatted||""}catch(e){return ""}}
 function mkRecord(o){const t=o.tags||{};const pick=(...k)=>{for(const x of k){if(t[x])return String(t[x]).split(";")[0].trim()}return ""};
  return {id:o.id,name:String(o.name).trim(),lat:+o.lat,lon:+o.lon,
   street:o.street||[pick("addr:street"),pick("addr:housenumber")].filter(Boolean).join(", "),
@@ -1763,8 +1736,12 @@ function pickTags(t){const o={};["shop","craft","trade","amenity","office","indu
 const safeUrl=s=>{if(!s)return "";let v=String(s).trim();if(!/^https?:\/\//i.test(v)&&/^[\w-]+(\.[\w-]+)+/.test(v))v="https://"+v;try{const u=new URL(v);return /^https?:$/.test(u.protocol)?u.href:""}catch(e){return ""}};
 function normInsta(v){let s=String(v||"").trim();if(!s)return "";const m=s.match(/instagram\.com\/([A-Za-z0-9_.]+)/i);const h=m?m[1]:s.replace(/^@/,"");if(!/^[A-Za-z0-9_.]{2,30}$/.test(h)||["p","reel","explore"].includes(h.toLowerCase()))return "";return "https://www.instagram.com/"+h+"/"}
 
-/* ---------- FONTE 2: Geoapify (chave opcional — a mesma da Órbita) ---------- */
+/* ---------- FONTE: Geoapify (chave obrigatória — a mesma da Órbita) ---------- */
 const GEO_SAFE=new Set(["commercial","commercial.houseware_and_hardware","commercial.houseware_and_hardware.doityourself","commercial.houseware_and_hardware.hardware_and_tools","commercial.houseware_and_hardware.building_materials","commercial.houseware_and_hardware.building_materials.paint","commercial.houseware_and_hardware.building_materials.glaziery","commercial.houseware_and_hardware.building_materials.doors","commercial.houseware_and_hardware.building_materials.tiles","commercial.houseware_and_hardware.building_materials.windows","commercial.houseware_and_hardware.building_materials.flooring","commercial.elektronics","commercial.elektronics.computer","commercial.elektronics.mobile_phone","commercial.stationery","commercial.books","commercial.supermarket","commercial.discount_store","commercial.department_store","commercial.marketplace","commercial.furniture_and_interior","commercial.garden","commercial.garden.garden_centre","commercial.garden.agrarian","commercial.vehicle","commercial.gas","commercial.health_and_beauty","commercial.health_and_beauty.pharmacy","commercial.health_and_beauty.medical_supply","commercial.clothing","commercial.food_and_drink","service","service.vehicle.fuel","service.vehicle.repair","service.cleaning","office","rental","catering","healthcare"]);
+/* categorias que a própria Geoapify devolve por local (mais confiável que adivinhar por tags) */
+function segsFromCategories(cats){if(!cats||!cats.length)return [];const out=[];
+ SEGMENTS.forEach(s=>{if(s.geo.some(sc=>cats.some(pc=>pc===sc||pc.startsWith(sc+".")||sc.startsWith(pc+"."))))out.push(s.id)});
+ return out}
 async function geoapifyRun(segIds,interp,center,radius,signal){
  let cats=[...new Set(segIds.flatMap(id=>SEG[id].geo))];if(!cats.length)cats=["commercial","service"];
  const attempt=async(list)=>{const u=new URL("https://api.geoapify.com/v2/places");u.searchParams.set("categories",list.join(","));u.searchParams.set("filter","circle:"+center.lon+","+center.lat+","+Math.round(radius));u.searchParams.set("bias","proximity:"+center.lon+","+center.lat);u.searchParams.set("limit","400");u.searchParams.set("lang","pt");if(interp.free&&interp.tokens.length)u.searchParams.set("name",interp.tokens.join(" "));u.searchParams.set("apiKey",settings.geoKey);return httpJson(u.href,null,signal)};
@@ -1772,34 +1749,16 @@ async function geoapifyRun(segIds,interp,center,radius,signal){
  return (d.features||[]).map(f=>{const p=f.properties||{},raw=(p.datasource&&p.datasource.raw)||{};if(!p.name)return null;
   const osmId=raw.osm_id&&raw.osm_type?"osm:"+raw.osm_type[0]+raw.osm_id:"geo:"+p.place_id;
   const c=p.contact||{};
-  return mkRecord({id:osmId,name:p.name,lat:p.lat,lon:p.lon,tags:raw,src:"geo",street:p.address_line1&&p.address_line1!==p.name?p.address_line1:[p.street,p.housenumber].filter(Boolean).join(", "),suburb:p.suburb||p.district||"",city:p.city||"",state:p.state_code||p.state||"",postcode:p.postcode||"",phone:c.phone||"",email:c.email||"",website:p.website||"",hours:p.opening_hours||""})}).filter(Boolean);
-}
-
-/* ---------- FONTE 3: Google Places (opcional, chave própria) ---------- */
-let gmPromise=null;
-function loadGoogle(){if(gmPromise)return gmPromise;gmPromise=new Promise((res,rej)=>{if(window.google&&google.maps&&google.maps.importLibrary){res();return}
- window.gm_authFailure=()=>{gmPromise=null;rej(new Error("O Google recusou a chave (verifique restrições de domínio e se a Places API (New) está ativa)."))};
- window.__suprimoGm=()=>res();const s=document.createElement("script");s.async=true;s.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(settings.googleKey)+"&v=weekly&libraries=places&language=pt-BR&region=BR&loading=async&callback=__suprimoGm";s.onerror=()=>{gmPromise=null;rej(new Error("Não foi possível carregar o Google Maps JS."))};document.head.appendChild(s);setTimeout(()=>rej(new Error("Tempo esgotado ao carregar o Google.")),20000)});return gmPromise}
-async function googleRun(segIds,interp,center,radius,signal,onQuery){
- await loadGoogle();const {Place}=await google.maps.importLibrary("places");
- const depth=+settings.googleDepth||3;const qs=[];
- if(interp.raw&&!interp.segs.some(s=>norm(SEG[s.id].label)===interp.q))qs.push(interp.raw);
- segIds.forEach(id=>SEG[id].gq.forEach(g=>{if(!qs.includes(g))qs.push(g)}));
- const list=qs.slice(0,Math.max(1,depth));const out=[];
- for(const textQuery of list){if(signal&&signal.aborted)throw new DOMException("abort","AbortError");onQuery&&onQuery(textQuery);
-  const {places}=await Place.searchByText({textQuery,fields:["id","displayName","formattedAddress","location","nationalPhoneNumber","internationalPhoneNumber","websiteURI","rating","userRatingCount","googleMapsURI","businessStatus","primaryTypeDisplayName"],locationBias:{center:{lat:center.lat,lng:center.lon},radius:Math.min(50000,Math.round(radius))},maxResultCount:20,language:"pt-BR",region:"br"});
-  (places||[]).forEach(p=>{if(p.businessStatus&&p.businessStatus!=="OPERATIONAL")return;const loc=p.location;if(!loc)return;const lat=typeof loc.lat==="function"?loc.lat():loc.lat,lng=typeof loc.lng==="function"?loc.lng():loc.lng;
-   const parts=String(p.formattedAddress||"").split(" - ");
-   out.push(mkRecord({id:"g:"+p.id,name:p.displayName,lat,lon:lng,src:"google",tags:{},street:parts[0]||p.formattedAddress||"",suburb:(parts[1]||"").split(",")[0],city:((parts[1]||"").split(",")[1]||"").trim(),state:(parts[2]||"").split(",")[0],phone:p.nationalPhoneNumber||p.internationalPhoneNumber||"",website:p.websiteURI||"",rating:p.rating||null,ratingCount:p.userRatingCount||0,gmaps:p.googleMapsURI||"",typeLabel:p.primaryTypeDisplayName||"",_gq:textQuery}))})}
- return out;
+  const rec=mkRecord({id:osmId,name:p.name,lat:p.lat,lon:p.lon,tags:raw,src:"geo",street:p.address_line1&&p.address_line1!==p.name?p.address_line1:[p.street,p.housenumber].filter(Boolean).join(", "),suburb:p.suburb||p.district||"",city:p.city||"",state:p.state_code||p.state||"",postcode:p.postcode||"",phone:c.phone||"",email:c.email||"",website:p.website||"",hours:p.opening_hours||""});
+  rec.geoSegs=segsFromCategories(p.categories);
+  return rec}).filter(Boolean);
 }
 
 /* ---------- classificação, deduplicação e pontuação ---------- */
 const SEG_TESTS=SEGMENTS.map(s=>({id:s.id,groups:s.osm.map(parseSel),kw:kwRegex(s.kw)}));
 function parseSel(sel){const out=[];sel.replace(/\["([^"]+)"(?:(=|~)"([^"]*)"(,i)?)?\]/g,(m,k,op,v,fl)=>{out.push({k,op,v,rx:op==="~"?new RegExp(v,fl?"i":""):null})});return out}
 function tagMatch(tags,groups){return groups.some(g=>g.every(c=>{const v=tags[c.k];if(v==null)return false;if(!c.op)return true;if(c.op==="=")return String(v)===c.v;return c.rx.test(String(v))}))}
-function classify(r){const byTag=[],byName=[];const tg={...(r.tags||{}),name:r.name};SEG_TESTS.forEach(s=>{if(tagMatch(tg,s.groups))byTag.push(s.id);else if(s.kw.test(r.name))byName.push(s.id)});
- if(r._gq){SEGMENTS.forEach(s=>{if(s.gq.includes(r._gq)&&!byTag.includes(s.id))byTag.push(s.id)})}
+function classify(r){const byTag=[...(r.geoSegs||[])],byName=[];const tg={...(r.tags||{}),name:r.name};SEG_TESTS.forEach(s=>{if(!byTag.includes(s.id)&&tagMatch(tg,s.groups))byTag.push(s.id);else if(s.kw.test(r.name))byName.push(s.id)});
  r.segTag=byTag;r.segs=[...new Set([...byTag,...byName])];return r}
 function merge(list){const byId=new Map();
  list.forEach(r=>{if(!r)return;const ex=byId.get(r.id);if(ex)absorb(ex,r);else byId.set(r.id,r)});
@@ -1808,7 +1767,7 @@ function merge(list){const byId=new Map();
   const dup=out.find(o=>(norm(o.name).split(" ").slice(0,3).join(" ")===key||norm(o.name)===norm(r.name))&&haversine(o.lat,o.lon,r.lat,r.lon)<180);
   if(dup)absorb(dup,r);else out.push(r)});
  return out}
-function absorb(a,b){["street","suburb","city","state","postcode","phone","whatsapp","email","website","instagram","facebook","hours","cnpj","gmaps","typeLabel"].forEach(k=>{if(!a[k]&&b[k])a[k]=b[k]});if(b.rating&&!a.rating){a.rating=b.rating;a.ratingCount=b.ratingCount}a.tags={...b.tags,...a.tags};a.sources=[...new Set([...a.sources,...b.sources])];if(b._gq&&!a._gq)a._gq=b._gq}
+function absorb(a,b){["street","suburb","city","state","postcode","phone","whatsapp","email","website","instagram","facebook","hours","cnpj","gmaps","typeLabel"].forEach(k=>{if(!a[k]&&b[k])a[k]=b[k]});if(b.rating&&!a.rating){a.rating=b.rating;a.ratingCount=b.ratingCount}a.tags={...b.tags,...a.tags};a.sources=[...new Set([...a.sources,...b.sources])];a.geoSegs=[...new Set([...(a.geoSegs||[]),...(b.geoSegs||[])])]}
 function contactScore(r){let s=0;if(r.phone)s+=2;if(r.whatsapp||isMobile(r.phone))s+=1;if(r.email)s+=1;if(r.website||r.instagram)s+=1;return s}/* 0..5 */
 function scoreRecord(r,interp,center,wanted){
  const nameN=norm(r.name);let s=0;
@@ -1832,30 +1791,18 @@ function isMobile(p){const d=phoneDigits(p);return d.length===11&&d[2]==="9"}
 function waNumber(r){const w=phoneDigits(r.whatsapp);if(w.length>=10)return "55"+w;const d=phoneDigits(r.phone);if(d.length===10||d.length===11)return "55"+d;return ""}
 function fmtPhone(p){const d=phoneDigits(p);if(d.length===11)return "("+d.slice(0,2)+") "+d.slice(2,7)+"-"+d.slice(7);if(d.length===10)return "("+d.slice(0,2)+") "+d.slice(2,6)+"-"+d.slice(6);return String(p||"")}
 
-/* ---------- ORQUESTRAÇÃO DA VARREDURA ---------- */
+/* ---------- ORQUESTRAÇÃO DA VARREDURA (fonte única: Geoapify) ---------- */
 async function runScan({interp,segIds,center,radius,signal,log}){
- const wanted=segIds.slice();const all=[];const status={osm:{state:"idle",n:0},geo:{state:settings.geoKey?"idle":"off",n:0},google:{state:settings.googleKey?"idle":"off",n:0}};
- const extraWords=[...new Set([...interp.tokens.filter(t=>t.length>=4),...interp.segs.flatMap(s=>s.why).filter(t=>t.length>=4)])].slice(0,10);
- const tasks=[];
- /* OSM em lotes para não sobrecarregar */
- tasks.push((async()=>{status.osm.state="run";log("osm","Varrendo OpenStreetMap…");
-  try{const batches=[];const ids=wanted.length?wanted:[];const size=ids.length>8?6:ids.length||1;
-   if(!ids.length)batches.push([]);else for(let i=0;i<ids.length;i+=size)batches.push(ids.slice(i,i+size));
-   let n=0;for(let b=0;b<batches.length;b++){const q=buildOverpass(batches[b],b===0?extraWords:[],center,radius);
-    log("osm",batches.length>1?"OpenStreetMap: lote "+(b+1)+" de "+batches.length+" ("+batches[b].map(i=>SEG[i].label.split(" ")[0]).join(", ")+")":"OpenStreetMap: consultando "+(batches[b].length?batches[b].length+" segmento(s)":"por nome"));
-    const els=await overpassRun(q,signal,host=>{});const recs=els.map(fromOsm).filter(Boolean);n+=recs.length;all.push(...recs);status.osm.n=n;log("osm","OpenStreetMap: "+n+" locais até agora",true)}
-   status.osm.state="ok"}catch(e){if(e.name==="AbortError")throw e;status.osm.state="err";status.osm.err=e.message;log("osm","OpenStreetMap indisponível agora ("+e.message+")",true,"err")}})());
- if(settings.geoKey)tasks.push((async()=>{status.geo.state="run";log("geo","Consultando Geoapify…");
-  try{const recs=await geoapifyRun(wanted,interp,center,radius,signal);all.push(...recs);status.geo.n=recs.length;status.geo.state="ok";log("geo","Geoapify: "+recs.length+" locais",true)}
-  catch(e){if(e.name==="AbortError")throw e;status.geo.state="err";status.geo.err=e.status===401||e.status===403?"chave recusada":e.message;log("geo","Geoapify: "+status.geo.err,true,"err")}})());
- if(settings.googleKey)tasks.push((async()=>{status.google.state="run";log("google","Consultando Google Places…");
-  try{const recs=await googleRun(wanted,interp,center,radius,signal,q=>log("google","Google: \""+q+"\""));all.push(...recs);status.google.n=recs.length;status.google.state="ok";log("google","Google Places: "+recs.length+" locais",true)}
-  catch(e){if(e.name==="AbortError")throw e;status.google.state="err";status.google.err=e.message;log("google","Google: "+e.message,true,"err")}})());
- await Promise.all(tasks);
- log("merge","Consolidando, removendo duplicados e pontuando…");
+ const wanted=segIds.slice();const status={geo:{state:"idle",n:0}};
+ if(!settings.geoKey){status.geo.state="err";status.geo.err="sem chave";log("geo","Cole sua chave da Geoapify em Ajustes para buscar.",true,"err");return {results:[],status}}
+ status.geo.state="run";log("geo","Consultando Geoapify…");
+ let all=[];
+ try{all=await geoapifyRun(wanted,interp,center,radius,signal);status.geo.n=all.length;status.geo.state="ok";log("geo","Geoapify: "+all.length+" locais",true)}
+ catch(e){if(e.name==="AbortError")throw e;status.geo.state="err";status.geo.err=e.status===401||e.status===403?"chave recusada":e.message;log("geo","Geoapify: "+status.geo.err,true,"err");return {results:[],status}}
+ log("merge","Classificando e pontuando…");
  const merged=merge(all).map(classify).map(r=>scoreRecord(r,interp,center,wanted)).filter(r=>r.distance<=radius*1.35);
  /* numa busca por segmentos, descarta o que não tem relação nenhuma */
- const rel=merged.filter(r=>!wanted.length||r.segs.some(x=>wanted.includes(x))||interp.tokens.some(t=>t.length>=3&&norm(r.name).includes(sing(t)))||r.sources.includes("google"));
+ const rel=merged.filter(r=>!wanted.length||r.segs.some(x=>wanted.includes(x))||interp.tokens.some(t=>t.length>=3&&norm(r.name).includes(sing(t))));
  rel.sort((a,b)=>b.score-a.score);
  return {results:rel,status};
 }
@@ -1866,7 +1813,7 @@ async function runScan({interp,segIds,center,radius,signal,log}){
 const store={get(k,d){try{const v=localStorage.getItem("suprimo:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
  set(k,v){try{localStorage.setItem("suprimo:"+k,JSON.stringify(v));return true}catch(e){toast("Não foi possível salvar neste navegador (armazenamento cheio ou bloqueado). Exporte um backup em Ajustes.");return false}}};
 const DEFAULT_TEMPLATE="Olá, {fornecedor}! Tudo bem?\n\nAqui é {solicitante}, da {empresa}. Estamos cotando os itens abaixo e gostaríamos de receber a sua proposta:\n\n{itens}\n\nLocal de entrega: {entrega}\nPrazo para envio da proposta: {prazo}\n\nPor gentileza, informe preço unitário, frete, prazo de entrega, condição de pagamento e validade da proposta.\n\nReferência: {codigo}\nObrigado(a)!";
-let settings=Object.assign({company:"",cnpj:"",requester:"",phone:"",email:"",delivery:"",geoKey:"",googleKey:"",googleDepth:3,radius:8000,location:"",template:DEFAULT_TEMPLATE,theme:""},store.get("settings",{}));
+let settings=Object.assign({company:"",cnpj:"",requester:"",phone:"",email:"",delivery:"",geoKey:"",radius:8000,location:"",template:DEFAULT_TEMPLATE,theme:""},store.get("settings",{}));
 let suppliers=store.get("suppliers",[]);
 let processes=store.get("processes",[]);
 let activeId=store.get("active",null);
@@ -1971,7 +1918,7 @@ function renderHome(){const el=$("#v-busca");const popular=["tubulação","desca
  sboxHTML(false)+
  '<div class="home-row"><span class="t">Varreduras prontas</span>'+COLLECTIONS.map(c=>'<button class="chip" type="button" data-col="'+c.id+'">'+ico(c.id==="tudo"?"radar":"layersicon",14)+esc(c.label)+'</button>').join("")+'</div>'+
  '<div class="home-row"><span class="t">Buscas comuns</span>'+popular.map(p=>'<button class="chip" type="button" data-q="'+esc(p)+'">'+esc(p)+'</button>').join("")+'</div>'+
- '<div class="src-note"><span><i class="dot on"></i>OpenStreetMap: ativo, sem chave</span><span><i class="dot '+(settings.geoKey?"on":"")+'"></i>Geoapify: '+(settings.geoKey?"ativo":"opcional")+'</span><span><i class="dot '+(settings.googleKey?"on":"")+'"></i>Google Places: '+(settings.googleKey?"ativo":"opcional")+'</span><a href="#ajustes" data-set class="muted" style="text-decoration:underline">configurar fontes</a></div>'+
+ '<div class="src-note"><span><i class="dot '+(settings.geoKey?"on":"err")+'"></i>Geoapify: '+(settings.geoKey?"ativo":"cole sua chave em Ajustes")+'</span><a href="#ajustes" data-set class="muted" style="text-decoration:underline">'+(settings.geoKey?"trocar chave":"configurar agora")+'</a></div>'+
  '<div class="kpis">'+kpis().map(k=>'<div class="card kpi"><div class="l">'+ico(k[0],15)+esc(k[1])+'</div><div class="v">'+esc(k[2])+'</div><div class="s">'+esc(k[3])+'</div></div>').join("")+'</div>'+
  '<div class="segs-h"><div><h2>Segmentos do almoxarifado</h2><p>'+SEGMENTS.length+' segmentos e mais de '+Math.floor(SEGMENTS.reduce((a,s)=>a+s.terms.length,0)/100)*100+' materiais e serviços reconhecidos pela busca.</p></div></div>'+
  '<div class="seggrid">'+SEGMENTS.map(s=>'<button class="segtile" type="button" data-seg="'+s.id+'" style="--h:'+s.hue+'"><span class="segico">'+ico(s.icon,19)+'</span><span><b>'+esc(s.label)+'</b><small>'+esc(SAMPLES[s.id]||"")+'</small></span></button>').join("")+'</div></div></div>';
@@ -1986,6 +1933,7 @@ async function startSearch({query,segIds,center}){
  query=String(query||"").trim();const locInput=$("#loc");const locText=(locInput?locInput.value:search.locLabel||settings.location||"").trim();
  if(!query&&!segIds){toast("Digite o que você precisa cotar.");$("#q")&&$("#q").focus();return}
  if(!locText&&!center&&!search.gpsFixed){toast("Informe a cidade ou use sua localização.");$("#loc")&&$("#loc").focus();return}
+ if(!settings.geoKey){toast("Cole sua chave da Geoapify em Ajustes antes de buscar.",{label:"Abrir Ajustes",run:()=>go("ajustes")});return}
  const interp=interpret(query);
  search.query=query;search.interp=interp;search.off=new Set();
  search.segIds=segIds?segIds.slice():[...interp.segs.map(s=>s.id),...interp.related];
@@ -2005,12 +1953,12 @@ async function runSearch(center){
   const {results,status}=await runScan({interp:search.interp,segIds:active,center:search.center,radius:search.radius,signal:ctrl.signal,log});
   if(ctrl.signal.aborted)return;
   search.results=results;search.status=status;search.scanning=false;
-  if(!results.length&&status.osm.state==="err"&&status.geo.state!=="ok"&&status.google.state!=="ok")search.error="As fontes não responderam agora. Verifique a conexão e tente de novo em instantes.";else search.error=null;
+  if(!results.length&&status.geo.state==="err")search.error=status.geo.err==="sem chave"?"Cole sua chave da Geoapify em Ajustes para buscar.":"A Geoapify não respondeu agora ("+status.geo.err+"). Verifique a conexão e tente de novo.";else search.error=null;
   renderResults();
  }catch(e){if(e.name==="AbortError")return;search.scanning=false;search.error=e.message;renderResults()}
 }
 function drawLog(){const l=$("#scanlog");if(!l)return;l.innerHTML=search.log.map(x=>'<div class="'+(x.kind==="err"?"err":x.done?"done":"")+'">'+(x.kind==="err"?ico("alert",14):x.done?ico("check",14):'<span class="dot run"></span>')+'<span>'+esc(x.text)+'</span></div>').join("");l.scrollTop=l.scrollHeight;const s=$("#u-src");if(s)s.innerHTML=srcPills()}
-function srcPills(){const st=search.status||{};const run=search.scanning;const row=(k,label)=>{const s=st[k]||{};const off=k!=="osm"&&!(k==="geo"?settings.geoKey:settings.googleKey);const state=off?"":run?"run":s.state==="ok"?"on":s.state==="err"?"err":"";return '<div class="srcpill" title="'+esc(s.err||"")+'"><span class="k"><i class="dot '+state+'"></i>'+label+'</span><b>'+(off?'<a href="#ajustes" class="soft" data-set>ativar</a>':run?"…":s.state==="err"?"falhou":(s.n||0))+'</b></div>'};return row("osm","OpenStreetMap")+row("geo","Geoapify")+row("google","Google Places")}
+function srcPills(){const st=search.status||{};const run=search.scanning;const s=st.geo||{};const off=!settings.geoKey;const state=off?"err":run?"run":s.state==="ok"?"on":s.state==="err"?"err":"";return '<div class="srcpill" title="'+esc(s.err||"")+'"><span class="k"><i class="dot '+state+'"></i>Geoapify</span><b>'+(off?'<a href="#ajustes" class="soft" data-set>colar chave</a>':run?"…":s.state==="err"?"falhou":(s.n||0))+'</b></div>'}
 
 function filtered(){const f=search.facet;return search.results.filter(r=>(!f.seg||r.segs.includes(f.seg))&&(!f.phone||r.phone)&&(!f.wa||waNumber(r))&&(!f.email||r.email)&&(!f.site||r.website||r.instagram)&&(!f.notsaved||!supById(r.id)))
  .sort((a,b)=>search.sort==="dist"?a.distance-b.distance:search.sort==="contact"?contactScore(b)-contactScore(a)||b.score-a.score:search.sort==="name"?a.name.localeCompare(b.name,"pt-BR"):b.score-a.score)}
@@ -2049,8 +1997,8 @@ function renderResultsList(){const col=$("#rcol");if(!col)return;
  if(search.error){col.innerHTML='<div class="empty">'+ico("alert",30)+'<b>Não foi possível concluir a varredura</b>'+esc(search.error)+'<div class="btns"><button class="btn pri" id="retry" type="button">'+ico("radar",16)+'Tentar de novo</button></div></div>';$("#retry").onclick=()=>runSearch(search.center);drawMarkers([]);return}
  const list=filtered(),shown=list.slice(0,search.showN);
  const head='<div class="list-h"><div><h3>'+list.length+' fornecedor'+(list.length===1?"":"es")+' encontrado'+(list.length===1?"":"s")+'</h3><span class="muted">'+(search.center?esc(search.center.label)+" · raio de "+km(search.radius):"")+'</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn sm seg-toggle" type="button" id="tFacets">'+ico("filter",15)+'Filtros</button><button class="btn sm seg-toggle" type="button" id="tMap">'+ico("map",15)+(search.showMap?"Ocultar mapa":"Mapa")+'</button><button class="btn sm" type="button" id="expRes"'+(list.length?"":" disabled")+'>'+ico("download",15)+'CSV</button><button class="btn sm" type="button" id="saveAll"'+(list.length?"":" disabled")+' title="Salvar todos os resultados filtrados na base">'+ico("bookmark",15)+'Salvar filtrados</button></div></div>';
- if(!list.length){const wider=RADII.find(r=>r>search.radius);col.innerHTML=head+'<div class="empty">'+ico("radar",30)+'<b>Nenhum fornecedor mapeado com esses critérios</b>A cobertura dos mapas abertos varia por bairro. Amplie o raio, inclua segmentos vizinhos ou ative mais fontes.<div class="btns">'+(wider?'<button class="btn pri" type="button" id="wider">'+ico("radar",16)+'Ampliar para '+km(wider)+'</button>':"")+'<button class="btn" type="button" id="addAll">'+ico("layersicon",16)+'Incluir segmentos vizinhos</button><button class="btn" type="button" data-set2>'+ico("key",16)+'Ativar Geoapify / Google</button></div></div>';
-  bindListHead();if($("#wider"))$("#wider").onclick=()=>{search.radius=wider;renderResults();runSearch(search.center)};$("#addAll").onclick=()=>{const extra=[...new Set(search.segIds.flatMap(id=>RELATED[id]||[]))].filter(x=>!search.segIds.includes(x));if(!extra.length)extra.push("distribuidoras","construcao");extra.forEach(x=>{if(!search.segIds.includes(x))search.segIds.push(x)});renderResults();runSearch(search.center)};col.querySelector("[data-set2]").onclick=()=>go("ajustes");drawMarkers([]);return}
+ if(!list.length){const wider=RADII.find(r=>r>search.radius);col.innerHTML=head+'<div class="empty">'+ico("radar",30)+'<b>Nenhum fornecedor mapeado com esses critérios</b>A cobertura varia por bairro. Amplie o raio ou inclua segmentos vizinhos.<div class="btns">'+(wider?'<button class="btn pri" type="button" id="wider">'+ico("radar",16)+'Ampliar para '+km(wider)+'</button>':"")+'<button class="btn" type="button" id="addAll">'+ico("layersicon",16)+'Incluir segmentos vizinhos</button></div></div>';
+  bindListHead();if($("#wider"))$("#wider").onclick=()=>{search.radius=wider;renderResults();runSearch(search.center)};$("#addAll").onclick=()=>{const extra=[...new Set(search.segIds.flatMap(id=>RELATED[id]||[]))].filter(x=>!search.segIds.includes(x));if(!extra.length)extra.push("distribuidoras","construcao");extra.forEach(x=>{if(!search.segIds.includes(x))search.segIds.push(x)});renderResults();runSearch(search.center)};drawMarkers([]);return}
  col.innerHTML=head+'<div class="rlist">'+shown.map(cardHTML).join("")+'</div>'+(list.length>shown.length?'<button class="btn more" type="button" id="more">Mostrar mais '+Math.min(30,list.length-shown.length)+' de '+(list.length-shown.length)+' restantes</button>':"");
  bindListHead();if($("#more"))$("#more").onclick=()=>{search.showN+=30;renderResultsList()};
  col.querySelector(".rlist").addEventListener("click",onCardClick);
@@ -2076,7 +2024,7 @@ function cardHTML(r){const seg=SEG[r.primary]||SEG.distribuidoras;const saved=!!
  (r.instagram?'<a class="cbtn" href="'+esc(r.instagram)+'" target="_blank" rel="noopener">'+ico("insta",14)+'<span>Instagram</span></a>':'<a class="cbtn dim" href="https://www.google.com/search?q='+encodeURIComponent(r.name+" "+(r.city||(search.center&&search.center.label)||"")+" telefone instagram")+'" target="_blank" rel="noopener" title="Pesquisar contatos na web">'+ico("search",14)+'<span>Achar contatos</span></a>')+
  '<a class="cbtn" href="'+esc(gm)+'" target="_blank" rel="noopener">'+ico("map",14)+'<span>Rota</span></a></div></div>'+
  '<div class="rside"><div class="fit '+r.fit+'" title="Aderência à busca: '+r.score+'/100"><span>'+(r.fit==="alta"?"Alta aderência":r.fit==="boa"?"Boa aderência":"Possível")+'</span><span class="fitbar"><i style="width:'+r.score+'%"></i></span></div>'+
- '<div class="dist">'+ico("pin",12)+km(r.distance)+'</div><div style="display:flex;gap:8px;align-items:center"><span class="cq" title="Contatos disponíveis: '+cq+'/5">'+[0,1,2,3,4].map(i=>'<i class="'+(i<cq?"on":"")+'"></i>').join("")+'</span><span class="srcs">'+r.sources.map(s=>'<i>'+(s==="osm"?"OSM":s==="geo"?"GEO":"GOOGLE")+'</i>').join("")+'</span></div>'+
+ '<div class="dist">'+ico("pin",12)+km(r.distance)+'</div><div style="display:flex;gap:8px;align-items:center"><span class="cq" title="Contatos disponíveis: '+cq+'/5">'+[0,1,2,3,4].map(i=>'<i class="'+(i<cq?"on":"")+'"></i>').join("")+'</span></div>'+
  '<div class="acts"><button class="btn sm pri" type="button" data-act="invite"'+(invited?" disabled":"")+'>'+ico(invited?"check":"send",14)+(invited?"Convidado":"Pedir cotação")+'</button>'+(saved?'':'<button class="btn sm" type="button" data-act="save">'+ico("bookmark",14)+'Salvar</button>')+'</div></div></article>'}
 function onCardClick(e){const b=e.target.closest("[data-act]");const card=e.target.closest(".rcard");if(!card)return;const r=search.results.find(x=>x.id===card.dataset.id);if(!r)return;
  if(b){if(b.dataset.act==="save"){saveSupplier(r);renderResultsList()}else if(b.dataset.act==="invite")inviteToActive(r);return}
@@ -2336,19 +2284,16 @@ function renderAjustes(){const el=$("#v-ajustes");const S=settings;
  const f=(k,l,ph,type,hint)=>'<div class="field"><label class="lbl" for="st-'+k+'">'+l+'</label><input class="inp" id="st-'+k+'" data-st="'+k+'" type="'+(type||"text")+'" placeholder="'+esc(ph||"")+'" value="'+esc(S[k]||"")+'">'+(hint?'<div class="hint">'+hint+'</div>':"")+'</div>';
  el.innerHTML='<div class="page-h"><div><div class="eyebrow">Configuração</div><h1>Ajustes</h1><p>Dados da empresa para as mensagens, fontes de busca e backup.</p></div></div><div class="setgrid">'+
  '<div class="card setcard"><h3>'+ico("building",17)+'Empresa solicitante</h3><p>Aparece nas mensagens de cotação e no mapa comparativo impresso.</p>'+f("company","Nome da empresa","Ex.: Construtora Exemplo Ltda")+'<div class="row2">'+f("cnpj","CNPJ","00.000.000/0000-00")+f("requester","Solicitante / comprador","Seu nome")+'</div><div class="row2">'+f("phone","Telefone de compras","(85) 0000-0000","tel")+f("email","E-mail de compras","compras@empresa.com","email")+'</div>'+f("delivery","Endereço de entrega padrão","Rua, nº, bairro, cidade")+'</div>'+
- '<div class="card setcard"><h3>'+ico("radar",17)+'Fontes da varredura</h3><p>Quanto mais fontes, maior a cobertura. As chaves ficam só neste navegador.</p>'+
- '<div class="srcrow"><span class="segico" style="--h:140">'+ico("map",17)+'</span><div style="flex:1"><b>OpenStreetMap</b> <span class="badge ok">sempre ativo</span><p>Base aberta e gratuita, consultada via Overpass. Não precisa de chave.</p></div></div>'+
- '<div class="srcrow"><span class="segico" style="--h:200">'+ico("globe",17)+'</span><div style="flex:1"><b>Geoapify</b> '+(S.geoKey?'<span class="badge ok">ativo</span>':'<span class="badge">opcional</span>')+'<p>A mesma chave usada na Órbita. Soma locais e contatos. <a href="https://myprojects.geoapify.com/" target="_blank" rel="noopener" style="text-decoration:underline">Obter chave</a></p><div class="keyline"><input class="inp mono" id="st-geoKey" data-st="geoKey" type="password" placeholder="Chave Geoapify" value="'+esc(S.geoKey)+'" autocomplete="off"><button class="btn" type="button" id="testGeo">Testar</button></div></div></div>'+
- '<div class="srcrow"><span class="segico" style="--h:25">'+ico("search",17)+'</span><div style="flex:1"><b>Google Places</b> '+(S.googleKey?'<span class="badge ok">ativo</span>':'<span class="badge">opcional</span>')+'<p>Maior cobertura comercial, com telefone, site e avaliações. Precisa de uma chave do Google Cloud com a <i>Places API (New)</i> e a <i>Maps JavaScript API</i> ativas, restrita ao domínio onde o Suprimo está hospedado. O Google tem cota mensal gratuita; acima dela, cobra por consulta.</p><div class="keyline"><input class="inp mono" id="st-googleKey" data-st="googleKey" type="password" placeholder="Chave Google Maps Platform" value="'+esc(S.googleKey)+'" autocomplete="off"><select class="sel" id="st-googleDepth" data-st="googleDepth" style="width:170px"><option value="1">1 consulta/busca</option><option value="3">3 consultas/busca</option><option value="5">5 consultas/busca</option></select></div></div></div></div>'+
+ '<div class="card setcard"><h3>'+ico("radar",17)+'Fonte da varredura</h3><p>O Suprimo usa a Geoapify para localizar endereços e fornecedores. A chave fica só neste navegador.</p>'+
+ '<div class="srcrow"><span class="segico" style="--h:200">'+ico("globe",17)+'</span><div style="flex:1"><b>Geoapify</b> '+(S.geoKey?'<span class="badge ok">ativo</span>':'<span class="badge warn">obrigatória</span>')+'<p>A mesma chave usada na Órbita. Tem um plano gratuito mensal generoso. <a href="https://myprojects.geoapify.com/" target="_blank" rel="noopener" style="text-decoration:underline">Obter chave gratuita</a></p><div class="keyline"><input class="inp mono" id="st-geoKey" data-st="geoKey" type="password" placeholder="Chave Geoapify" value="'+esc(S.geoKey)+'" autocomplete="off"><button class="btn" type="button" id="testGeo">Testar</button></div></div></div></div>'+
  '<div class="card setcard"><h3>'+ico("mail",17)+'Mensagem de solicitação</h3><p>Modelo usado no WhatsApp, e-mail e cópia. Clique numa variável para inserir.</p><textarea class="ta" id="st-template" data-st="template" style="min-height:260px">'+esc(S.template)+'</textarea><div class="vars">'+["fornecedor","empresa","solicitante","telefone","email","itens","entrega","prazo","codigo","obra"].map(v=>'<code data-var="'+v+'">{'+v+'}</code>').join("")+'</div><div style="margin-top:12px"><button class="btn sm" type="button" id="resetTpl">Restaurar modelo padrão</button></div></div>'+
  '<div class="card setcard"><h3>'+ico("database",17)+'Dados e backup</h3><p>Tudo fica salvo neste navegador. Exporte um backup para levar a outro computador ou guardar com segurança.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="bkExp">'+ico("download",16)+'Exportar backup</button><label class="btn" for="bkImp" tabindex="0">'+ico("upload",16)+'Importar backup<input class="hidden" id="bkImp" type="file" accept=".json,application/json"></label><button class="btn danger" type="button" id="wipe">'+ico("trash",16)+'Apagar tudo</button></div><div class="hint" style="margin-top:14px">'+suppliers.length+' fornecedores · '+processes.length+' cotações · chaves de API não entram no backup.</div></div></div>';
- $("#st-googleDepth").value=String(S.googleDepth||3);
- el.querySelectorAll("[data-st]").forEach(i=>i.addEventListener("change",()=>{S[i.dataset.st]=i.dataset.st==="googleDepth"?+i.value:i.value.trim?i.value.trim():i.value;if(i.dataset.st==="googleKey")gmPromise=null;saveSettings();toast("Ajuste salvo.")}));
+ el.querySelectorAll("[data-st]").forEach(i=>i.addEventListener("change",()=>{S[i.dataset.st]=i.value.trim?i.value.trim():i.value;saveSettings();toast("Ajuste salvo.")}));
  el.querySelectorAll("[data-var]").forEach(c=>c.onclick=()=>{const t=$("#st-template");const pos=t.selectionStart||t.value.length;t.value=t.value.slice(0,pos)+"{"+c.dataset.var+"}"+t.value.slice(pos);S.template=t.value;saveSettings();t.focus()});
  $("#resetTpl").onclick=()=>{S.template=DEFAULT_TEMPLATE;saveSettings();renderAjustes();toast("Modelo restaurado.")};
  $("#testGeo").onclick=async e=>{const k=$("#st-geoKey").value.trim();if(!k){toast("Cole a chave primeiro.");return}S.geoKey=k;saveSettings();e.target.disabled=true;try{const d=await httpJson("https://api.geoapify.com/v1/geocode/search?text=Fortaleza&limit=1&format=json&apiKey="+encodeURIComponent(k));toast(d&&d.results?"Geoapify respondeu: chave válida.":"Resposta inesperada da Geoapify.")}catch(err){toast(err.status===401||err.status===403?"A Geoapify recusou a chave.":"Falha ao testar: "+err.message)}finally{e.target.disabled=false}};
- $("#bkExp").onclick=()=>{const {geoKey,googleKey,...safe}=settings;download("suprimo-backup-"+new Date().toISOString().slice(0,10)+".json",JSON.stringify({app:"suprimo",version:1,exportedAt:new Date().toISOString(),settings:safe,suppliers,processes},null,2),"application/json")};
- $("#bkImp").onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const d=JSON.parse(await file.text());if(d.app!=="suprimo")throw 0;const sm=new Map(suppliers.map(s=>[s.id,s]));(d.suppliers||[]).forEach(s=>sm.set(s.id,{...sm.get(s.id),...s}));suppliers=[...sm.values()];const pm=new Map(processes.map(p=>[p.id,p]));(d.processes||[]).forEach(p=>pm.set(p.id,p));processes=[...pm.values()];if(d.settings){const {geoKey,googleKey,...rest}=d.settings;Object.assign(settings,rest)}saveSettings();saveSuppliers();saveProcesses();toast("Backup importado e mesclado.");renderAjustes()}catch(err){toast("Arquivo inválido: não é um backup do Suprimo.")}finally{e.target.value=""}};
+ $("#bkExp").onclick=()=>{const {geoKey,...safe}=settings;download("suprimo-backup-"+new Date().toISOString().slice(0,10)+".json",JSON.stringify({app:"suprimo",version:1,exportedAt:new Date().toISOString(),settings:safe,suppliers,processes},null,2),"application/json")};
+ $("#bkImp").onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const d=JSON.parse(await file.text());if(d.app!=="suprimo")throw 0;const sm=new Map(suppliers.map(s=>[s.id,s]));(d.suppliers||[]).forEach(s=>sm.set(s.id,{...sm.get(s.id),...s}));suppliers=[...sm.values()];const pm=new Map(processes.map(p=>[p.id,p]));(d.processes||[]).forEach(p=>pm.set(p.id,p));processes=[...pm.values()];if(d.settings){const {geoKey,...rest}=d.settings;Object.assign(settings,rest)}saveSettings();saveSuppliers();saveProcesses();toast("Backup importado e mesclado.");renderAjustes()}catch(err){toast("Arquivo inválido: não é um backup do Suprimo.")}finally{e.target.value=""}};
  $("#wipe").onclick=async()=>{if(!await confirmBox("Apagar todos os dados?","Fornecedores, cotações e ajustes deste navegador serão removidos. Exporte um backup antes, se quiser guardar.","Apagar tudo",true))return;suppliers=[];processes=[];activeId=null;const t=settings.theme;settings={...settings,company:"",cnpj:"",requester:"",phone:"",email:"",delivery:"",template:DEFAULT_TEMPLATE};settings.theme=t;saveSettings();saveSuppliers();saveProcesses();toast("Dados apagados.");renderAjustes()}}
 
 /* ============================================================
