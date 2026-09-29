@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#0a0c0f">
-<meta name="description" content="Suprimo — central de cotações do almoxarifado: encontre depósitos, lojas, distribuidoras e prestadores de serviço, dispare pedidos de cotação e compare propostas.">
-<title>Suprimo · Central de Cotações</title>
+<meta name="description" content="Suprimo — pesquise empresas no Google Maps e organize fornecedores, contatos e cotações em um só lugar.">
+<title>Suprimo · Organização de fornecedores</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f5a524'/%3E%3Cpath d='M16 5.5 25.5 11v10L16 26.5 6.5 21V11Z' fill='none' stroke='%231b1204' stroke-width='2.4' stroke-linejoin='round'/%3E%3Cpath d='m6.5 11 9.5 5.5 9.5-5.5M16 16.5v10' fill='none' stroke='%231b1204' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -1209,6 +1209,30 @@ main{position:relative;z-index:1}
 .morescan:empty{display:none}
 .empty .btns #moreScan{order:-1}
 
+
+/* Pesquisa direta no Maps e organização dos leads */
+.org-home{max-width:1080px;margin:0 auto;padding:48px 0 64px}
+.org-home h1{font-size:clamp(34px,5.5vw,58px);line-height:1.05;letter-spacing:-.045em;margin:12px 0 14px}
+.org-home h1 em{font-style:normal;color:var(--accent)}
+.org-home>.lead{max-width:700px;margin:0 0 26px;color:var(--muted);font-size:16px;line-height:1.65}
+.map-search-card{padding:22px;max-width:900px}
+.map-search-fields{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(220px,.8fr);gap:14px}
+.map-search-fields .field{margin:0}
+.map-search-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.map-search-note{border-top:1px solid var(--line);padding-top:12px;margin:12px 0 0;color:var(--muted);font-size:12.5px;line-height:1.55}
+#mapQueryPreview{margin-top:12px;min-height:18px}
+.btn.disabled{opacity:.48}
+.recent-maps{margin-top:28px}
+.recent-map-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.recent-map{display:flex;align-items:center;gap:9px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;color:var(--text);text-decoration:none;background:var(--surface)}
+.recent-map:hover{border-color:var(--accent)}
+.recent-map>span{color:var(--accent);display:flex}
+.recent-map b{font-size:13px;font-weight:600;flex:1}
+.recent-map small{font-size:11px;color:var(--muted)}
+.org-home .home-row{margin:20px 0 26px}
+.org-shortcuts{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:22px}
+@media(max-width:680px){.org-home{padding:30px 0 42px}.map-search-card{padding:16px}.map-search-fields{grid-template-columns:1fr;gap:12px}.recent-map-list{grid-template-columns:1fr}.recent-map{align-items:flex-start;flex-wrap:wrap}.recent-map small{margin-left:auto}.org-shortcuts .btn{flex:1;justify-content:center}}
+
 </style>
 </head>
 <body>
@@ -1216,7 +1240,7 @@ main{position:relative;z-index:1}
  <div class="top-in">
   <a class="brand" href="#busca" data-go="busca" aria-label="Suprimo — início">
    <span class="mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20 7.3v9.4l-8 4.5-8-4.5V7.3Z"/><path d="m4 7.3 8 4.5 8-4.5M12 11.8v9.4"/><path d="M8 5.1l8 4.5" opacity=".55"/></svg></span>
-   <span><div class="brand-t">Suprimo</div><div class="brand-s">Central de cotações</div></span>
+   <span><div class="brand-t">Suprimo</div><div class="brand-s">Fornecedores e cotações</div></span>
   </a>
   <nav class="nav" aria-label="Principal">
    <button data-view="busca"><i data-ico="search"></i><span class="tl">Buscar</span></button>
@@ -1238,7 +1262,7 @@ main{position:relative;z-index:1}
 </main>
 <footer class="foot">
  <span>Suprimo · os dados ficam salvos neste navegador. Confirme preços, prazos e cadastro diretamente com cada fornecedor.</span>
- <span>Mapas e locais: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · <a href="https://www.geoapify.com/" target="_blank" rel="noopener">Geoapify</a> · CNPJ: <a href="https://brasilapi.com.br" target="_blank" rel="noopener">BrasilAPI</a></span>
+ <span>Pesquisa externa: Google Maps · CNPJ: <a href="https://brasilapi.com.br" target="_blank" rel="noopener">BrasilAPI</a></span>
 </footer>
 <div id="overlay"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -1987,11 +2011,12 @@ async function scanMore({interp,segIds,center,radius,signal,log,jobs,pool}){
 const store={get(k,d){try{const v=localStorage.getItem("suprimo:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
  set(k,v){try{localStorage.setItem("suprimo:"+k,JSON.stringify(v));return true}catch(e){toast("Não foi possível salvar neste navegador (armazenamento cheio ou bloqueado). Exporte um backup em Ajustes.");return false}}};
 const DEFAULT_TEMPLATE="Olá, {fornecedor}! Tudo bem?\n\nAqui é {solicitante}, da {empresa}. Estamos cotando os itens abaixo e gostaríamos de receber a sua proposta:\n\n{itens}\n\nLocal de entrega: {entrega}\nPrazo para envio da proposta: {prazo}\n\nPor gentileza, informe preço unitário, frete, prazo de entrega, condição de pagamento e validade da proposta.\n\nReferência: {codigo}\nObrigado(a)!";
-let settings=Object.assign({company:"",cnpj:"",requester:"",phone:"",email:"",delivery:"",geoKey:"",depth:1,radius:8000,location:"",template:DEFAULT_TEMPLATE,theme:""},store.get("settings",{}));
+let settings=Object.assign({company:"",cnpj:"",requester:"",phone:"",email:"",delivery:"",location:"",template:DEFAULT_TEMPLATE,theme:""},store.get("settings",{}));
 let suppliers=store.get("suppliers",[]);
 let processes=store.get("processes",[]);
 let activeId=store.get("active",null);
 const saveSettings=()=>store.set("settings",settings);
+if("geoKey" in settings||"depth" in settings||"radius" in settings){delete settings.geoKey;delete settings.depth;delete settings.radius;saveSettings()}
 const saveSuppliers=()=>{store.set("suppliers",suppliers);updateCounts()};
 const saveProcesses=()=>{store.set("processes",processes);store.set("active",activeId);updateCounts()};
 
@@ -2060,7 +2085,7 @@ function inviteToActive(r){let p=activeProc();let created=false;
 /* ============================================================
    BUSCA
    ============================================================ */
-const search={mode:"home",interp:null,segIds:[],off:new Set(),center:null,locLabel:"",radius:settings.radius||8000,results:[],status:null,facet:{seg:null,phone:false,wa:false,email:false,site:false,notsaved:false},sort:"score",showN:30,scanning:false,log:[],ctrl:null,hl:null,query:"",showMap:false,showFacets:false};
+const search={mode:"home",interp:null,segIds:[],off:new Set(),center:null,locLabel:"",radius:8000,results:[],status:null,facet:{seg:null,phone:false,wa:false,email:false,site:false,notsaved:false},sort:"score",showN:30,scanning:false,log:[],ctrl:null,hl:null,query:"",showMap:false,showFacets:false};
 const RADII=[2000,5000,8000,12000,20000,35000,50000];
 function sboxHTML(compact){const loc=esc(search.locLabel||settings.location||"");return '<form class="sbox'+(compact?" compact":"")+'" id="sform" autocomplete="off" role="search">'+ico("search",20)+
  '<input class="q" id="q" name="q" type="search" placeholder="'+(innerWidth<760?"Material ou serviço…":"O que você precisa cotar? Ex.: tubulação, descartáveis, EPI, cimento…")+'" value="'+esc(search.query)+'" aria-label="Material, produto ou serviço" aria-autocomplete="list" aria-controls="ac">'+
@@ -2076,46 +2101,70 @@ function bindSbox(){const f=$("#sform"),q=$("#q"),ac=$("#ac");let sel=-1,items=[
  const pick=s=>{ac.classList.add("hidden");if(s.type==="seg"){q.value=s.text;startSearch({query:s.text,segIds:[s.seg]})}else{q.value=s.text;startSearch({query:s.text})}};
  ac.addEventListener("mousedown",e=>{const b=e.target.closest(".ac-i");if(b){e.preventDefault();pick(items[+b.dataset.i])}});
  q.addEventListener("blur",()=>setTimeout(()=>ac.classList.add("hidden"),120));
- $("#rad").onchange=e=>{search.radius=+e.target.value;settings.radius=search.radius;saveSettings()};
+ $("#rad").onchange=e=>{search.radius=+e.target.value};
  $("#gps").onclick=useGps;
  f.onsubmit=e=>{e.preventDefault();ac.classList.add("hidden");startSearch({query:q.value})}}
 function useGps(){if(!navigator.geolocation){toast("Seu navegador não permite localização.");return}toast("Obtendo sua localização…");
  navigator.geolocation.getCurrentPosition(async pos=>{const {latitude:lat,longitude:lon}=pos.coords;search.center={lat,lon,label:"Minha localização"};const lbl=await reverseGeocode(lat,lon);search.center.label=lbl||"Minha localização";search.locLabel=search.center.label;search.gpsFixed=true;const li=$("#loc");if(li)li.value=search.locLabel;toast("Localização definida: "+search.locLabel)},()=>toast("Não foi possível obter a localização. Digite a cidade."),{enableHighAccuracy:false,timeout:10000})}
 
-function renderBusca(){if(search.mode==="home")renderHome();else renderResults()}
+function renderBusca(){renderHome()}
 function kpis(){const open=processes.filter(p=>!["concluida","cancelada"].includes(p.status)).length;const sav=processes.reduce((a,p)=>a+(p.award&&p.award.savings>0?p.award.savings:0),0);
  let sent=0,resp=0;processes.forEach(p=>p.invites.forEach(i=>{if(i.status!=="pendente")sent++;if(i.status==="respondeu")resp++}));
  return [["building","Fornecedores na base",suppliers.length,suppliers.filter(s=>s.cnpjData&&/ATIVA/i.test(s.cnpjData.situacao||"")).length+" com CNPJ ativo verificado"],["clipboard","Cotações em andamento",open,processes.length+" no total"],["trend","Economia registrada",money(sav),"diferença para a maior proposta"],["send","Taxa de resposta",sent?Math.round(resp/sent*100)+"%":"—",resp+" de "+sent+" solicitações"]]}
-function renderHome(){const el=$("#v-busca");const popular=["tubulação","descartáveis","eletrônicos","EPI","cimento","material de limpeza","ar-condicionado","caçamba de entulho","rolamento","papel A4","andaime","extintor"];
- el.innerHTML='<div class="wrap"><div class="home"><div class="hero-mark"><span class="ring"></span><span class="ring"></span><span class="mark"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20 7.3v9.4l-8 4.5-8-4.5V7.3Z"/><path d="m4 7.3 8 4.5 8-4.5M12 11.8v9.4"/><path d="M8 5.1l8 4.5" opacity=".55"/></svg></span></div>'+
- '<div class="eyebrow">Compras e suprimentos</div><h1>Tudo que o almoxarifado precisa,<br><em>a uma busca de distância.</em></h1><p class="lead">Digite um material, produto ou serviço. O Suprimo interpreta o pedido, identifica os segmentos certos e varre os fornecedores da região: depósitos, lojas, distribuidoras e prestadores.</p>'+
- sboxHTML(false)+
- '<div class="home-row"><span class="t">Varreduras prontas</span>'+COLLECTIONS.map(c=>'<button class="chip" type="button" data-col="'+c.id+'">'+ico(c.id==="tudo"?"radar":"layersicon",14)+esc(c.label)+'</button>').join("")+'</div>'+
- '<div class="home-row"><span class="t">Buscas comuns</span>'+popular.map(p=>'<button class="chip" type="button" data-q="'+esc(p)+'">'+esc(p)+'</button>').join("")+'</div>'+
- '<div class="src-note"><span><i class="dot '+(settings.geoKey?"on":"err")+'"></i>Geoapify: '+(settings.geoKey?"ativo":"cole sua chave em Ajustes")+'</span><a href="#ajustes" data-set class="muted" style="text-decoration:underline">'+(settings.geoKey?"trocar chave":"configurar agora")+'</a></div>'+
- '<div class="kpis">'+kpis().map(k=>'<div class="card kpi"><div class="l">'+ico(k[0],15)+esc(k[1])+'</div><div class="v">'+esc(k[2])+'</div><div class="s">'+esc(k[3])+'</div></div>').join("")+'</div>'+
- '<div class="segs-h"><div><h2>Segmentos do almoxarifado</h2><p>'+SEGMENTS.length+' segmentos e mais de '+Math.floor(SEGMENTS.reduce((a,s)=>a+s.terms.length,0)/100)*100+' materiais e serviços reconhecidos pela busca.</p></div></div>'+
- '<div class="seggrid">'+SEGMENTS.map(s=>'<button class="segtile" type="button" data-seg="'+s.id+'" style="--h:'+s.hue+'"><span class="segico">'+ico(s.icon,19)+'</span><span><b>'+esc(s.label)+'</b><small>'+esc(SAMPLES[s.id]||"")+'</small></span></button>').join("")+'</div></div></div>';
- bindSbox();
- el.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{$("#q").value=b.dataset.q;startSearch({query:b.dataset.q})});
- el.querySelectorAll("[data-seg]").forEach(b=>b.onclick=()=>startSearch({query:SEG[b.dataset.seg].label,segIds:[b.dataset.seg]}));
- el.querySelectorAll("[data-col]").forEach(b=>b.onclick=()=>{const c=COLLECTIONS.find(x=>x.id===b.dataset.col);startSearch({query:c.label,segIds:c.segs==="*"?SEGMENTS.map(s=>s.id):c.segs})});
- el.querySelector("[data-set]").onclick=e=>{e.preventDefault();go("ajustes")};
+function mapsSearchText(term,city){
+ const t=String(term||"").trim().replace(/\s+/g," ");const c=String(city||"").trim().replace(/\s+/g," ");
+ if(!t||!c)return "";
+ const business=/^(empresas?|fornecedores?|lojas?|distribuidoras?|prestadores?)\b/i.test(t)?t:"empresas de "+t;
+ return business+(norm(business).includes(norm(c))?"":" em "+c);
 }
-
-async function startSearch({query,segIds,center}){
- query=String(query||"").trim();const locInput=$("#loc");const locText=(locInput?locInput.value:search.locLabel||settings.location||"").trim();
- if(!query&&!segIds){toast("Digite o que você precisa cotar.");$("#q")&&$("#q").focus();return}
- if(!locText&&!center&&!search.gpsFixed){toast("Informe a cidade ou use sua localização.");$("#loc")&&$("#loc").focus();return}
- if(!settings.geoKey){toast("Cole sua chave da Geoapify em Ajustes antes de buscar.",{label:"Abrir Ajustes",run:()=>go("ajustes")});return}
- const interp=interpret(query);
- search.query=query;search.interp=interp;/* nichos vizinhos aparecem como sugestão desligada: um clique inclui */search.off=new Set(segIds?[]:interp.related);
- search.segIds=segIds?segIds.slice():[...interp.segs.map(s=>s.id),...interp.related];
- search.primary=segIds?segIds.slice():interp.segs.map(s=>s.id);
- search.facet={seg:null,phone:false,wa:false,email:false,site:false,notsaved:false};search.showN=30;search.results=[];search.status=null;
- if(locText&&(!search.gpsFixed||locText!==search.locLabel)){search.gpsFixed=false;search.locLabel=locText;settings.location=locText;saveSettings()}
- search.mode="results";if(view!=="busca")go("busca");else renderResults();
- await runSearch(center);
+function mapsSearchUrl(text){return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(text)}
+const MAP_VIDEO_LEADS=[
+ {name:"DelSol Energia Solar",website:"https://delsolenergiasolar.com/"},
+ {name:"EcoSol Comércio e Serviços Fotovoltaicos"},
+ {name:"MF Energy",website:"https://mfenergy.com.br/"},
+ {name:"Fortal Solar",website:"https://fortalsolar.com.br/"},
+ {name:"Sunplena",website:"https://sunplena.com.br/"},
+ {name:"Mareal Engenharia e Tecnologia"},
+ {name:"Ceará Energia"},
+ {name:"Raio Solar Fortal"},
+ {name:"H3 Solar",website:"https://h3solar.com/"},
+ {name:"Ener Brasil"},
+ {name:"55 Energy"},
+ {name:"Way Sustentabilidade"},
+ {name:"Eleva Energy"}
+];
+function importMapVideoLeads(){
+ const city="Fortaleza",state="CE",stamp=new Date().toISOString();let added=0;
+ MAP_VIDEO_LEADS.forEach(item=>{if(suppliers.some(x=>norm(x.name)===norm(item.name)&&norm(x.city)===norm(city)))return;
+  suppliers.unshift({id:uid("maps:"),name:item.name,segs:["solar"],primary:"solar",street:"",suburb:"",city,state,postcode:"",phone:"",whatsapp:"",email:"",website:item.website||"",instagram:"",facebook:"",hours:"",cnpj:"",cnpjData:null,rating:0,notes:"Nome lido no vídeo enviado da pesquisa do Google Maps. Confirme no Maps a localização, atividade e contatos antes de abordar.",sources:["maps-video"],origin:"manual-maps",createdAt:stamp});added++;
+ });
+ if(added){saveSuppliers();toast(added+" registros adicionados à base; confira cada empresa antes de usar.")}else toast("Esses registros já estão na base.");
+ renderHome();
+}
+function renderHome(){
+ const el=$("#v-busca"),city=search.locLabel||settings.location||"";
+ const popular=["energia solar","material de construção","material elétrico","EPIs","ar-condicionado","distribuidora de alimentos"];
+ const opts=SEGMENTS.map(x=>'<option value="'+esc(x.label)+'"></option>').join("");
+ const history=store.get("mapsSearches",[]);
+ el.innerHTML='<div class="wrap"><div class="org-home"><div class="eyebrow">Pesquisa no Google Maps · organização própria</div><h1>Encontre empresas.<br><em>Organize no Suprimo.</em></h1><p class="lead">Monte uma pesquisa por atividade e cidade. O Maps mostra os resultados; você cadastra no Suprimo as empresas que quer acompanhar.</p>'+ 
+ '<div class="card map-search-card"><div class="map-search-fields"><div class="field"><label class="lbl" for="mapTerm">Tipo de empresa</label><input class="inp" id="mapTerm" list="mapSegments" placeholder="Ex.: energia solar" autocomplete="off" value="'+esc(search.query||"")+'"><datalist id="mapSegments">'+opts+'</datalist></div><div class="field"><label class="lbl" for="mapCity">Cidade</label><input class="inp" id="mapCity" placeholder="Ex.: Fortaleza, CE" value="'+esc(city)+'" autocomplete="address-level2"></div></div><div class="map-search-actions"><a class="btn pri disabled" id="openMaps" href="#" target="_blank" rel="noopener" aria-disabled="true">'+ico("map",16)+'Abrir pesquisa no Google Maps</a><button class="btn" id="addFromMaps" type="button">'+ico("plus",16)+'Cadastrar empresa encontrada</button></div><div class="hint" id="mapQueryPreview" aria-live="polite">Preencha tipo de empresa e cidade para montar o link.</div><p class="map-search-note">O Suprimo não lê nem importa os resultados do Maps. Os registros ficam salvos neste navegador; você controla segmentos, contatos, observações e cotações.</p></div>'+
+ '<div class="home-row"><span class="t">Pesquisas rápidas</span>'+popular.map(x=>'<button class="chip" type="button" data-mapterm="'+esc(x)+'">'+esc(x)+'</button>').join("")+'</div>'+
+  '<section class="recent-maps"><div class="segs-h"><div><h2>Empresas do vídeo</h2><p>Importe os nomes visíveis como cadastros pendentes de conferência.</p></div><button class="btn" id="importMapLeads" type="button">'+ico("download",15)+'Adicionar '+MAP_VIDEO_LEADS.length+' empresas do vídeo</button></div><div class="hint">Endereços, telefones e situação não foram confirmados individualmente. Cada cadastro terá busca direta no Maps.</div></section>'+
+ (history.length?'<section class="recent-maps"><div class="segs-h"><div><h2>Pesquisas recentes</h2><p>Reabra uma pesquisa por cidade no Maps.</p></div><button class="btn xs ghost" id="clearMapsHistory" type="button">Limpar histórico</button></div><div class="recent-map-list">'+history.map(x=>'<a class="recent-map" href="'+esc(mapsSearchUrl(x.text))+'" target="_blank" rel="noopener"><span>'+ico("map",15)+'</span><b>'+esc(x.text)+'</b><small>'+esc(fmtDate(x.at))+'</small></a>').join("")+'</div></section>':'')+
+ '<div class="kpis">'+kpis().map(k=>'<div class="card kpi"><div class="l">'+ico(k[0],15)+esc(k[1])+'</div><div class="v">'+esc(k[2])+'</div><div class="s">'+esc(k[3])+'</div></div>').join("")+'</div><div class="org-shortcuts"><a class="btn" href="#fornecedores" data-go="fornecedores">'+ico("building",16)+'Organizar fornecedores ('+suppliers.length+')</a><a class="btn" href="#cotacoes" data-go="cotacoes">'+ico("clipboard",16)+'Acompanhar cotações ('+processes.length+')</a></div></div></div>';
+ const t=$("#mapTerm"),c=$("#mapCity"),a=$("#openMaps"),preview=$("#mapQueryPreview");
+ const sync=()=>{const text=mapsSearchText(t.value,c.value);search.query=t.value;search.locLabel=c.value;a.href=text?mapsSearchUrl(text):"#";a.setAttribute("aria-disabled",text?"false":"true");a.classList.toggle("disabled",!text);preview.textContent=text?"Será aberta esta pesquisa: "+text:"Preencha tipo de empresa e cidade para montar o link."};
+ t.addEventListener("input",sync);c.addEventListener("input",sync);sync();
+ a.addEventListener("click",e=>{const text=mapsSearchText(t.value,c.value);if(!text){e.preventDefault();toast("Informe o tipo de empresa e a cidade.");(!t.value.trim()?t:c).focus();return}settings.location=c.value.trim();saveSettings();const next=store.get("mapsSearches",[]).filter(x=>norm(x.text)!==norm(text));next.unshift({text,at:new Date().toISOString()});store.set("mapsSearches",next.slice(0,8))});
+ el.querySelectorAll("[data-mapterm]").forEach(b=>b.onclick=()=>{t.value=b.dataset.mapterm;sync();t.focus()});
+ $("#importMapLeads").onclick=importMapVideoLeads;
+ $("#addFromMaps").onclick=()=>{if(!c.value.trim()){toast("Informe a cidade primeiro.");c.focus();return}const n=norm(t.value),seg=SEGMENTS.find(x=>norm(x.label)===n);openSupplier(null,{city:c.value.trim(),segs:seg?[seg.id]:[],primary:seg?seg.id:""})};
+ const clear=$("#clearMapsHistory");if(clear)clear.onclick=()=>{store.set("mapsSearches",[]);renderHome();toast("Histórico limpo.")};
+}
+async function startSearch({query}={}){
+ const term=String(query||"").trim(),city=String(search.locLabel||settings.location||"").trim();const text=mapsSearchText(term,city);
+ if(!text){toast("Informe o tipo de empresa e a cidade.");return}
+ window.open(mapsSearchUrl(text),"_blank","noopener");
 }
 async function runSearch(center){
  if(search.ctrl)search.ctrl.abort();const ctrl=new AbortController();search.ctrl=ctrl;search.scanning=true;search.log=[];renderResultsList();
@@ -2180,7 +2229,7 @@ function renderResultsList(){const col=$("#rcol");if(!col)return;
  if(search.error){col.innerHTML='<div class="empty">'+ico("alert",30)+'<b>Não foi possível concluir a varredura</b>'+esc(search.error)+'<div class="btns"><button class="btn pri" id="retry" type="button">'+ico("radar",16)+'Tentar de novo</button></div></div>';$("#retry").onclick=()=>runSearch(search.center);drawMarkers([]);return}
  const list=filtered(),shown=list.slice(0,search.showN);
  const head='<div class="list-h"><div><h3>'+list.length+' fornecedor'+(list.length===1?"":"es")+' encontrado'+(list.length===1?"":"s")+'</h3><span class="muted">'+(search.center?esc(search.center.label)+" · raio de "+km(search.radius):"")+'</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn sm seg-toggle" type="button" id="tFacets">'+ico("filter",15)+'Filtros</button><button class="btn sm seg-toggle" type="button" id="tMap">'+ico("map",15)+(search.showMap?"Ocultar mapa":"Mapa")+'</button><button class="btn sm" type="button" id="expRes"'+(list.length?"":" disabled")+'>'+ico("download",15)+'CSV</button><button class="btn sm" type="button" id="saveAll"'+(list.length?"":" disabled")+' title="Salvar todos os resultados filtrados na base">'+ico("bookmark",15)+'Salvar filtrados</button></div></div>';
- if(!list.length){const wider=RADII.find(r=>r>search.radius);col.innerHTML=head+'<div class="empty">'+ico("radar",30)+'<b>Nenhum fornecedor mapeado com esses critérios</b>A Geoapify usa o OpenStreetMap e a cobertura varia por bairro. Amplie o raio, busque mais fichas ou inclua segmentos vizinhos.<div class="btns">'+(moreBtn())+(wider?'<button class="btn pri" type="button" id="wider">'+ico("radar",16)+'Ampliar para '+km(wider)+'</button>':"")+'<button class="btn" type="button" id="addAll">'+ico("layersicon",16)+'Incluir segmentos vizinhos</button></div></div>';
+ if(!list.length){const wider=RADII.find(r=>r>search.radius);col.innerHTML=head+'<div class="empty">'+ico("radar",30)+'<b>Nenhum fornecedor mapeado com esses critérios</b>A A cobertura dos resultados varia conforme os dados disponíveis no Google Maps. Ajuste a pesquisa ou cadastre a empresa manualmente.<div class="btns">'+(moreBtn())+(wider?'<button class="btn pri" type="button" id="wider">'+ico("radar",16)+'Ampliar para '+km(wider)+'</button>':"")+'<button class="btn" type="button" id="addAll">'+ico("layersicon",16)+'Incluir segmentos vizinhos</button></div></div>';
   bindListHead();bindMore();if($("#wider"))$("#wider").onclick=()=>{search.radius=wider;renderResults();runSearch(search.center)};$("#addAll").onclick=()=>{const extra=[...new Set(search.segIds.flatMap(id=>RELATED[id]||[]))].filter(x=>!search.segIds.includes(x));if(!extra.length)extra.push("distribuidoras","construcao");extra.forEach(x=>{if(!search.segIds.includes(x))search.segIds.push(x)});renderResults();runSearch(search.center)};drawMarkers([]);return}
  col.innerHTML=head+'<div class="rlist">'+shown.map(cardHTML).join("")+'</div>'+(list.length>shown.length?'<button class="btn more" type="button" id="more">Mostrar mais '+Math.min(30,list.length-shown.length)+' de '+(list.length-shown.length)+' restantes</button>':'')+'<div class="morescan">'+moreBtn()+'</div>';
  bindListHead();if($("#more"))$("#more").onclick=()=>{search.showN+=30;renderResultsList()};bindMore();
@@ -2222,7 +2271,7 @@ function setTiles(){if(!map)return;const dark=document.documentElement.dataset.t
  else window.mapTiles=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:osm}).addTo(map)}
 function initMap(){const el=$("#map");if(!el||typeof L==="undefined")return;if(map){map.remove();map=null;markers.clear()}
  map=L.map(el,{zoomControl:true,attributionControl:true,scrollWheelZoom:true}).setView(search.center?[search.center.lat,search.center.lon]:[-3.73,-38.52],12);setTiles();
- map.on("click",async e=>{if(search.scanning)return;const ok=await confirmBox("Varrer a partir deste ponto?","O centro da busca passa a ser o ponto clicado no mapa, mantendo o mesmo raio e segmentos.","Varrer aqui");if(!ok)return;const lbl=await reverseGeocode(e.latlng.lat,e.latlng.lng);search.center={lat:e.latlng.lat,lon:e.latlng.lng,label:lbl||"Ponto no mapa"};search.locLabel=search.center.label;search.gpsFixed=true;renderResults();runSearch(search.center)});
+ map.on("click",async e=>{if(search.scanning)return;const ok=await confirmBox("Abrir pesquisa no Google Maps?","A pesquisa será aberta no Google Maps. Os fornecedores precisam ser cadastrados manualmente no Suprimo.","Pesquisar no Maps");if(!ok)return;const lbl=await reverseGeocode(e.latlng.lat,e.latlng.lng);search.center={lat:e.latlng.lat,lon:e.latlng.lng,label:lbl||"Ponto no mapa"};search.locLabel=search.center.label;search.gpsFixed=true;renderResults();runSearch(search.center)});
  drawCenter();if(!search.scanning)drawMarkers(filtered().slice(0,400))}
 function drawCenter(){if(!map||!search.center)return;if(radiusCircle)map.removeLayer(radiusCircle);if(centerMk)map.removeLayer(centerMk);const c=[search.center.lat,search.center.lon];
  radiusCircle=L.circle(c,{radius:search.radius,color:"#f5a524",weight:1.2,opacity:.7,fillColor:"#f5a524",fillOpacity:.04,dashArray:"5 7",interactive:false}).addTo(map);
@@ -2244,7 +2293,7 @@ const fs_={q:"",seg:"",sort:"recent"};
 function supStats(id){let inv=0,resp=0,won=0;processes.forEach(p=>{const i=p.invites.find(x=>x.sid===id);if(i){inv++;if(i.status==="respondeu")resp++}if(p.award&&(p.award.sid===id||(p.award.map&&Object.values(p.award.map).includes(id))))won++});return {inv,resp,won}}
 function renderFornecedores(){const el=$("#v-fornecedores");
  const segsUsed=[...new Set(suppliers.flatMap(s=>s.segs))].filter(x=>SEG[x]).sort((a,b)=>SEG[a].label.localeCompare(SEG[b].label));
- el.innerHTML='<div class="page-h"><div><div class="eyebrow">Cadastro</div><h1>Base de fornecedores</h1><p>Fornecedores salvos das varreduras ou cadastrados manualmente, com avaliação, histórico e verificação de CNPJ.</p></div><div class="acts"><button class="btn" type="button" id="expSup">'+ico("download",16)+'Exportar CSV</button><button class="btn pri" type="button" id="newSup">'+ico("plus",16)+'Novo fornecedor</button></div></div>'+
+ el.innerHTML='<div class="page-h"><div><div class="eyebrow">Cadastro</div><h1>Base de fornecedores</h1><p>Cadastre empresas encontradas no Maps e organize contatos, segmentos, histórico de cotações e verificação de CNPJ.</p></div><div class="acts"><button class="btn" type="button" id="expSup">'+ico("download",16)+'Exportar CSV</button><button class="btn pri" type="button" id="newSup">'+ico("plus",16)+'Novo fornecedor</button></div></div>'+
  '<div class="toolbar"><input class="inp" id="fsq" type="search" placeholder="Buscar por nome, bairro, cidade…" value="'+esc(fs_.q)+'"><select class="sel" id="fsseg"><option value="">Todos os segmentos</option>'+segsUsed.map(s=>'<option value="'+s+'"'+(fs_.seg===s?" selected":"")+'>'+esc(SEG[s].label)+'</option>').join("")+'</select><select class="sel" id="fssort"><option value="recent">Mais recentes</option><option value="name">Nome A–Z</option><option value="rating">Melhor avaliados</option><option value="part">Mais participações</option></select><span class="muted" id="fscount" style="font-size:12.5px"></span></div><div id="stable"></div>';
  $("#fssort").value=fs_.sort;
  $("#fsq").oninput=e=>{fs_.q=e.target.value;drawSupTable()};$("#fsseg").onchange=e=>{fs_.seg=e.target.value;drawSupTable()};$("#fssort").onchange=e=>{fs_.sort=e.target.value;drawSupTable()};
@@ -2256,7 +2305,7 @@ function drawSupTable(){const box=$("#stable");const q=norm(fs_.q);
  const stats=Object.fromEntries(list.map(s=>[s.id,supStats(s.id)]));
  if(fs_.sort==="name")list.sort((a,b)=>a.name.localeCompare(b.name,"pt-BR"));if(fs_.sort==="rating")list.sort((a,b)=>(b.rating||0)-(a.rating||0));if(fs_.sort==="part")list.sort((a,b)=>stats[b.id].inv-stats[a.id].inv);
  $("#fscount").textContent=list.length+" de "+suppliers.length;
- if(!suppliers.length){box.innerHTML='<div class="card empty" style="border-style:dashed">'+ico("building",32)+'<b>Sua base ainda está vazia</b>Faça uma varredura e salve os fornecedores que interessarem, ou cadastre um pelo CNPJ.<div class="btns"><button class="btn pri" type="button" id="goSearch">'+ico("radar",16)+'Fazer uma varredura</button><button class="btn" type="button" id="newSup2">'+ico("plus",16)+'Cadastrar pelo CNPJ</button></div></div>';$("#goSearch").onclick=()=>{search.mode="home";go("busca")};$("#newSup2").onclick=()=>openSupplier(null);return}
+ if(!suppliers.length){box.innerHTML='<div class="card empty" style="border-style:dashed">'+ico("building",32)+'<b>Sua base ainda está vazia</b>Pesquise no Google Maps e cadastre aqui as empresas que deseja acompanhar.<div class="btns"><button class="btn pri" type="button" id="goSearch">'+ico("radar",16)+'Pesquisar no Maps</button><button class="btn" type="button" id="newSup2">'+ico("plus",16)+'Cadastrar fornecedor</button></div></div>';$("#goSearch").onclick=()=>{search.mode="home";go("busca")};$("#newSup2").onclick=()=>openSupplier(null);return}
  const p=activeProc();
  box.innerHTML='<div class="card stable"><div class="srow head"><span>Fornecedor</span><span class="c-seg">Segmentos</span><span class="c-loc">Local</span><span class="c-cnpj">CNPJ</span><span class="c-rate">Avaliação</span><span class="c-part">Cotações</span><span style="text-align:right">Ações</span></div>'+
  (list.length?list.map(s=>{const st=stats[s.id];const seg=SEG[s.primary]||SEG[s.segs[0]]||SEG.distribuidoras;const wa=waNumber(s);const inv=p&&p.invites.some(i=>i.sid===s.id);
@@ -2265,7 +2314,7 @@ function drawSupTable(){const box=$("#stable");const q=norm(fs_.q);
   '<div class="c-seg" style="display:flex;gap:4px;flex-wrap:wrap">'+s.segs.slice(0,2).map(segTag).join("")+'</div><div class="c-loc muted">'+esc([s.suburb,s.city].filter(Boolean).join(", ")||"—")+'</div><div class="c-cnpj">'+cn+'</div>'+
   '<div class="c-rate"><span class="rate" data-rate="'+esc(s.id)+'">'+[1,2,3,4,5].map(n=>'<button type="button" data-n="'+n+'" class="'+(n<=(s.rating||0)?"on":"")+'" aria-label="'+n+' estrela(s)">'+ico("star",15)+'</button>').join("")+'</span></div>'+
   '<div class="c-part muted" title="convites · respostas · vitórias">'+st.inv+' · '+st.resp+' · <b style="color:var(--ok)">'+st.won+'</b></div>'+
-  '<div class="ra"><span class="ic">'+(s.phone?'<a href="tel:+55'+phoneDigits(s.phone)+'" title="Ligar">'+ico("phone",14)+'</a>':'<span>'+ico("phone",14)+'</span>')+(wa?'<a href="https://wa.me/'+wa+'" target="_blank" rel="noopener" title="WhatsApp">'+ico("whats",14)+'</a>':'<span>'+ico("whats",14)+'</span>')+'</span><button class="btn xs '+(inv?"ok":"")+'" type="button" data-inv="'+esc(s.id)+'" title="'+(inv?"Já está na cotação ativa":"Convidar para a cotação ativa")+'"'+(inv?" disabled":"")+'>'+ico(inv?"check":"send",13)+'</button><button class="btn xs" type="button" data-edit="'+esc(s.id)+'" title="Editar">'+ico("edit",13)+'</button></div></div>'}).join(""):'<div class="empty" style="border:0">Nenhum fornecedor corresponde ao filtro.</div>')+'</div>';
+  '<div class="ra"><span class="ic">'+(s.phone?'<a href="tel:+55'+phoneDigits(s.phone)+'" title="Ligar">'+ico("phone",14)+'</a>':'<span>'+ico("phone",14)+'</span>')+(wa?'<a href="https://wa.me/'+wa+'" target="_blank" rel="noopener" title="WhatsApp">'+ico("whats",14)+'</a>':'<span>'+ico("whats",14)+'</span>')+'</span><a class="btn xs" href="'+esc(mapsSearchUrl([s.name,s.street,s.suburb,s.city,s.state].filter(Boolean).join(" ")))+'" target="_blank" rel="noopener" title="Abrir fornecedor no Google Maps">'+ico("map",13)+'</a><button class="btn xs '+(inv?"ok":"")+'" type="button" data-inv="'+esc(s.id)+'" title="'+(inv?"Já está na cotação ativa":"Convidar para a cotação ativa")+'"'+(inv?" disabled":"")+'>'+ico(inv?"check":"send",13)+'</button><button class="btn xs" type="button" data-edit="'+esc(s.id)+'" title="Editar">'+ico("edit",13)+'</button></div></div>'}).join(""):'<div class="empty" style="border:0">Nenhum fornecedor corresponde ao filtro.</div>')+'</div>';
  box.querySelectorAll("[data-rate] button").forEach(b=>b.onclick=e=>{e.stopPropagation();const s=supById(b.parentElement.dataset.rate);s.rating=+b.dataset.n===s.rating?0:+b.dataset.n;saveSuppliers();drawSupTable()});
  box.querySelectorAll("[data-edit]").forEach(b=>b.onclick=e=>{e.stopPropagation();openSupplier(b.dataset.edit)});
  box.querySelectorAll("[data-inv]").forEach(b=>b.onclick=e=>{e.stopPropagation();const s=supById(b.dataset.inv);inviteToActive({...s,segs:s.segs,primary:s.primary});drawSupTable()});
@@ -2276,7 +2325,7 @@ function cnpjValid(c){c=String(c||"").replace(/\D/g,"");if(c.length!==14||/^(\d)
 const fmtCnpj=c=>{c=String(c||"").replace(/\D/g,"");return c.length===14?c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,"$1.$2.$3/$4-$5"):c};
 async function consultCnpj(c){c=String(c).replace(/\D/g,"");if(!cnpjValid(c))throw new Error("CNPJ inválido. Confira os dígitos.");const d=await httpJson("https://brasilapi.com.br/api/cnpj/v1/"+c);
  return {razao:d.razao_social||"",fantasia:d.nome_fantasia||"",situacao:d.descricao_situacao_cadastral||"",cnae:d.cnae_fiscal_descricao||"",abertura:d.data_inicio_atividade||"",porte:d.porte||d.descricao_porte||"",street:[d.descricao_tipo_de_logradouro,d.logradouro].filter(Boolean).join(" ")+(d.numero?", "+d.numero:""),suburb:d.bairro||"",city:d.municipio||"",state:d.uf||"",postcode:d.cep||"",phone:d.ddd_telefone_1||"",email:(d.email||"").toLowerCase(),checkedAt:new Date().toISOString()}}
-function openSupplier(id){const s=id?supById(id):{id:uid("m:"),name:"",segs:[],primary:"",street:"",suburb:"",city:"",state:"",postcode:"",phone:"",whatsapp:"",email:"",website:"",instagram:"",facebook:"",hours:"",cnpj:"",cnpjData:null,rating:0,notes:"",sources:["manual"],origin:"manual",createdAt:new Date().toISOString()};
+function openSupplier(id,initial={}){const s=id?supById(id):{id:uid("m:"),name:"",segs:[],primary:"",street:"",suburb:"",city:"",state:"",postcode:"",phone:"",whatsapp:"",email:"",website:"",instagram:"",facebook:"",hours:"",cnpj:"",cnpjData:null,rating:0,notes:"",sources:["manual"],origin:"manual",createdAt:new Date().toISOString(),...initial};
  const draft=JSON.parse(JSON.stringify(s));const st=id?supStats(id):null;
  const f=(k,l,ph,type)=>'<div class="field"><label class="lbl" for="sf-'+k+'">'+l+'</label><input class="inp" id="sf-'+k+'" data-k="'+k+'" type="'+(type||"text")+'" placeholder="'+esc(ph||"")+'" value="'+esc(draft[k]||"")+'"></div>';
  const cnpjBox=()=>draft.cnpjData?'<div class="cnpj-box"><div class="r"><span>Situação</span><span class="badge '+(/ATIVA/i.test(draft.cnpjData.situacao)?"ok":"bad")+'">'+esc(draft.cnpjData.situacao)+'</span></div><div class="r"><span>Razão social</span><b>'+esc(draft.cnpjData.razao)+'</b></div><div class="r"><span>Atividade principal</span><span style="text-align:right">'+esc(draft.cnpjData.cnae)+'</span></div><div class="r"><span>Abertura · porte</span><span>'+esc(fmtDate(draft.cnpjData.abertura))+(draft.cnpjData.porte?" · "+esc(draft.cnpjData.porte):"")+'</span></div><div class="r"><span>Consultado em</span><span>'+esc(fmtDT(draft.cnpjData.checkedAt))+'</span></div></div>':"";
@@ -2308,7 +2357,7 @@ const INV_ST={pendente:["Não enviado",""],enviado:["Solicitado","warn"],respond
 function renderCotacoes(){const el=$("#v-cotacoes");const p=activeProc();
  el.innerHTML='<div class="page-h"><div><div class="eyebrow">Processos de compra</div><h1>Cotações</h1><p>Monte a requisição, convide fornecedores, dispare os pedidos e compare as propostas lado a lado.</p></div><div class="acts"><button class="btn pri" type="button" id="newProc">'+ico("plus",16)+'Nova cotação</button></div></div>'+
  (processes.length?'<div class="cq-grid"><aside class="card plist" id="plist"></aside><section id="pw"></section></div>':
- '<div class="card noproc">'+ico("clipboard",38)+'<h2>Nenhuma cotação ainda</h2><p>Crie uma cotação, adicione os itens da requisição e convide fornecedores encontrados na varredura. Quer ver como fica o mapa comparativo antes? Carregue a demonstração.</p><div class="btns" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn pri" type="button" id="newProc2">'+ico("plus",16)+'Criar cotação</button><button class="btn" type="button" id="demo">'+ico("play",15)+'Ver demonstração</button></div></div>');
+ '<div class="card noproc">'+ico("clipboard",38)+'<h2>Nenhuma cotação ainda</h2><p>Crie uma cotação, adicione os itens da requisição e convide fornecedores cadastrados na sua base. Quer ver como fica o mapa comparativo antes? Carregue a demonstração.</p><div class="btns" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn pri" type="button" id="newProc2">'+ico("plus",16)+'Criar cotação</button><button class="btn" type="button" id="demo">'+ico("play",15)+'Ver demonstração</button></div></div>');
  $("#newProc").onclick=()=>{newProcess();cq.tab="itens";renderCotacoes()};
  if($("#newProc2")){$("#newProc2").onclick=()=>{newProcess();cq.tab="itens";renderCotacoes()};$("#demo").onclick=loadDemo}
  if(processes.length){if(!p){activeId=processes[0].id;saveProcesses();return renderCotacoes()}renderProcess()}}
@@ -2331,7 +2380,7 @@ function renderItems(p){const b=$("#pwb");
  p.items.map((it,i)=>'<tr data-iid="'+it.id+'"><td class="idx">'+(i+1)+'</td><td><input class="inp" data-f="desc" value="'+esc(it.desc)+'"></td><td><input class="inp num" data-f="qty" inputmode="decimal" value="'+esc(num(it.qty,3))+'"></td><td><select class="sel" data-f="unit">'+[...new Set([...UNITS,it.unit])].map(u=>'<option'+(u===it.unit?" selected":"")+'>'+esc(u)+'</option>').join("")+'</select></td><td><input class="inp" data-f="spec" placeholder="Opcional" value="'+esc(it.spec||"")+'"></td><td><select class="sel" data-f="seg"><option value="">—</option>'+SEGMENTS.map(s=>'<option value="'+s.id+'"'+(it.seg===s.id?" selected":"")+'>'+esc(s.label)+'</option>').join("")+'</select></td><td><button class="btn xs ghost" type="button" data-rm="'+it.id+'" aria-label="Remover item">'+ico("x",14)+'</button></td></tr>').join("")+'</tbody></table></div>':
  '<div class="empty" style="margin-bottom:6px">'+ico("package",30)+'<b>Adicione os itens da requisição</b>Digite abaixo (com sugestões do catálogo) ou cole uma lista inteira, uma linha por item.</div>')+
  '<div class="additem"><input class="inp" id="newItem" placeholder="Adicionar item: comece a digitar, ex.: cabo flexível, luva, cimento…" autocomplete="off"><input class="inp" id="newQty" placeholder="Qtd." inputmode="decimal" style="width:90px;flex:none"><button class="btn pri" type="button" id="addIt">'+ico("plus",16)+'Adicionar</button><div class="ac hidden" id="itac"></div></div>'+
- '<div class="pw-foot"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="pasteIt">'+ico("paste",16)+'Colar lista</button><button class="btn" type="button" id="catIt">'+ico("layersicon",16)+'Catálogo do almoxarifado</button></div><button class="btn pri" type="button" id="findSup"'+(p.items.length?"":" disabled")+'>'+ico("radar",16)+'Varrer fornecedores para estes itens</button></div>';
+ '<div class="pw-foot"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="pasteIt">'+ico("paste",16)+'Colar lista</button><button class="btn" type="button" id="catIt">'+ico("layersicon",16)+'Catálogo do almoxarifado</button></div><button class="btn pri" type="button" id="findSup"'+(p.items.length?"":" disabled")+'>'+ico("radar",16)+'Pesquisar no Maps para estes itens</button></div>';
  b.querySelectorAll("tr[data-iid]").forEach(tr=>tr.querySelectorAll("[data-f]").forEach(inp=>inp.onchange=()=>{const it=p.items.find(x=>x.id===tr.dataset.iid);const f=inp.dataset.f;it[f]=f==="qty"?(parseBR(inp.value)||0):inp.value;if(f==="desc"&&!it.seg){const g=interpret(it.desc).segs[0];if(g){it.seg=g.id}}saveProcesses();if(f==="desc"||f==="qty")renderItems(p)}));
  b.querySelectorAll("[data-rm]").forEach(x=>x.onclick=()=>{p.items=p.items.filter(i=>i.id!==x.dataset.rm);saveProcesses();renderProcess()});
  const ni=$("#newItem"),ac=$("#itac");let opts=[];
@@ -2341,7 +2390,7 @@ function renderItems(p){const b=$("#pwb");
  ni.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();ac.classList.add("hidden");add(ni.value)}};ni.onblur=()=>setTimeout(()=>ac.classList.add("hidden"),120);
  $("#addIt").onclick=()=>add(ni.value);
  $("#pasteIt").onclick=()=>pasteItems(p);$("#catIt").onclick=()=>catalogPicker(p);
- $("#findSup").onclick=()=>{const segs=[...new Set(p.items.map(i=>i.seg).filter(Boolean))];if(!segs.length){toast("Defina o segmento dos itens para varrer.");return}search.mode="results";search.query="";go("busca");startSearch({query:p.title,segIds:segs})}}
+ $("#findSup").onclick=()=>{const segs=[...new Set(p.items.map(i=>i.seg).filter(Boolean))];if(!segs.length){toast("Defina o segmento dos itens para pesquisar.");return}search.mode="results";search.query="";go("busca");startSearch({query:p.title,segIds:segs})}}
 function parseLine(l){l=l.replace(/\t+/g," \t ").trim();if(!l)return null;
  const cells=l.split("\t").map(s=>s.trim()).filter(Boolean);
  if(cells.length>=2){const q=parseBR(cells[1]);if(q!=null)return {desc:cells[0],qty:q,unit:cells[2]||"un"};const q0=parseBR(cells[0]);if(q0!=null)return {desc:cells.slice(cells.length>2?2:1).join(" "),qty:q0,unit:cells.length>2?cells[1]:"un"}}
@@ -2374,8 +2423,8 @@ function renderInvites(p){const b=$("#pwb");const pend=p.invites.filter(i=>i.sta
   '<div class="acts">'+(wa?'<a class="btn xs wa" data-send="wa" href="https://wa.me/'+wa+'?text='+encodeURIComponent(msg)+'" target="_blank" rel="noopener">'+ico("whats",14)+'WhatsApp</a>':"")+(s.email?'<a class="btn xs" data-send="mail" href="mailto:'+esc(s.email)+'?subject='+encodeURIComponent(subj(p))+'&body='+encodeURIComponent(msg)+'">'+ico("mail",14)+'E-mail</a>':"")+'<button class="btn xs" type="button" data-copy>'+ico("copy",14)+'Copiar</button><button class="btn xs" type="button" data-resp title="Registrar preços">'+ico("edit",14)+'Preços</button><button class="btn xs ghost" type="button" data-uninv aria-label="Remover da cotação">'+ico("x",14)+'</button></div></div>'}).join("");
  b.innerHTML=(p.items.length?"":'<div class="badge warn" style="margin-bottom:12px">'+ico("alert",12)+'Adicione itens antes de enviar: a mensagem lista os itens da requisição.</div>')+
  (!settings.company||!settings.requester?'<div class="badge warn" style="margin-bottom:12px;height:auto;padding:6px 10px;white-space:normal">'+ico("info",12)+'Preencha nome da empresa e do solicitante em Ajustes para personalizar as mensagens.</div>':"")+
- (p.invites.length?list:'<div class="empty">'+ico("building",30)+'<b>Nenhum fornecedor convidado</b>Use "Pedir cotação" nos resultados da varredura ou adicione da sua base.</div>')+
- '<div class="pw-foot"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="fromBase">'+ico("building",16)+'Adicionar da base</button><button class="btn" type="button" id="toSearch">'+ico("radar",16)+'Varrer novos fornecedores</button><button class="btn" type="button" id="prevMsg">'+ico("mail",16)+'Ver mensagem</button></div><button class="btn pri" type="button" id="queue"'+(pend&&p.items.length?"":" disabled")+'>'+ico("send",16)+'Disparar em sequência ('+pend+')</button></div>';
+ (p.invites.length?list:'<div class="empty">'+ico("building",30)+'<b>Nenhum fornecedor convidado</b>Use "Pedir cotação" na base de fornecedores.</div>')+
+ '<div class="pw-foot"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="fromBase">'+ico("building",16)+'Adicionar da base</button><button class="btn" type="button" id="toSearch">'+ico("radar",16)+'Pesquisar no Maps</button><button class="btn" type="button" id="prevMsg">'+ico("mail",16)+'Ver mensagem</button></div><button class="btn pri" type="button" id="queue"'+(pend&&p.items.length?"":" disabled")+'>'+ico("send",16)+'Disparar em sequência ('+pend+')</button></div>';
  b.querySelectorAll(".inv").forEach(row=>{const inv=p.invites.find(i=>i.sid===row.dataset.sid);const s=supById(inv.sid)||{name:""};
   row.querySelector("[data-ist]").onchange=e=>{inv.status=e.target.value;if(inv.status==="enviado"&&!inv.sentAt)inv.sentAt=new Date().toISOString();if(inv.status==="respondeu"&&!inv.repliedAt)inv.repliedAt=new Date().toISOString();saveProcesses();renderProcess()};
   row.querySelectorAll("[data-send]").forEach(a=>a.addEventListener("click",()=>{markSent(p,inv);setTimeout(renderProcess,200)}));
@@ -2387,7 +2436,7 @@ function renderInvites(p){const b=$("#pwb");const pend=p.invites.filter(i=>i.sta
  $("#queue").onclick=()=>sendQueue(p)}
 function pickFromBase(p){const avail=suppliers.filter(s=>!p.invites.some(i=>i.sid===s.id));const segs=new Set(p.items.map(i=>i.seg));
  avail.sort((a,b)=>(b.segs.some(x=>segs.has(x))?1:0)-(a.segs.some(x=>segs.has(x))?1:0)||(b.rating||0)-(a.rating||0));
- if(!avail.length){toast(suppliers.length?"Todos os fornecedores da base já foram convidados.":"Sua base está vazia. Faça uma varredura primeiro.");return}
+ if(!avail.length){toast(suppliers.length?"Todos os fornecedores da base já foram convidados.":"Sua base está vazia. Cadastre fornecedores antes de criar convites.");return}
  openLayer('<div class="modal-h"><div><h3>Adicionar da base</h3><p>Os que atendem aos segmentos dos itens aparecem primeiro.</p></div><button class="iconbtn x" data-close type="button" aria-label="Fechar">'+ico("x",18)+'</button></div><div class="modal-b">'+avail.map(s=>'<label class="pickrow"><input type="checkbox" value="'+esc(s.id)+'"'+(s.segs.some(x=>segs.has(x))?" checked":"")+'><span class="segico" style="--h:'+segHue(s.primary||s.segs[0])+';width:30px;height:30px">'+ico(SEG[s.primary]?SEG[s.primary].icon:"building",15)+'</span><span style="flex:1;min-width:0"><b>'+esc(s.name)+'</b><small>'+esc(s.segs.map(x=>SEG[x]?SEG[x].label:"").join(" · "))+'</small></span>'+(s.rating?'<span class="stars">'+ico("star",12)+s.rating+'</span>':"")+'</label>').join("")+'</div><div class="modal-f"><button class="btn ghost" data-close type="button">Cancelar</button><button class="btn pri" id="pbOk" type="button">'+ico("plus",16)+'Convidar selecionados</button></div>',"modal",root=>{
  $("#pbOk").onclick=()=>{const ids=[...root.querySelectorAll("input:checked")].map(i=>i.value);ids.forEach(id=>p.invites.push({sid:id,status:"pendente",sentAt:null,repliedAt:null,prices:{},freight:null,days:"",payment:"",validity:"",obs:""}));saveProcesses();closeLayer();toast(ids.length+" fornecedor(es) convidado(s).");renderProcess()}})}
 function sendQueue(p){const q=p.invites.filter(i=>i.status==="pendente");let k=0;
@@ -2468,20 +2517,17 @@ function loadDemo(){const mk=(n,seg,ph)=>{const s={id:uid("demo:"),name:n,segs:[
    ============================================================ */
 function renderAjustes(){const el=$("#v-ajustes");const S=settings;
  const f=(k,l,ph,type,hint)=>'<div class="field"><label class="lbl" for="st-'+k+'">'+l+'</label><input class="inp" id="st-'+k+'" data-st="'+k+'" type="'+(type||"text")+'" placeholder="'+esc(ph||"")+'" value="'+esc(S[k]||"")+'">'+(hint?'<div class="hint">'+hint+'</div>':"")+'</div>';
- el.innerHTML='<div class="page-h"><div><div class="eyebrow">Configuração</div><h1>Ajustes</h1><p>Dados da empresa para as mensagens, fontes de busca e backup.</p></div></div><div class="setgrid">'+
+ el.innerHTML='<div class="page-h"><div><div class="eyebrow">Configuração</div><h1>Ajustes</h1><p>Dados da empresa para as mensagens, organização e backup.</p></div></div><div class="setgrid">'+
  '<div class="card setcard"><h3>'+ico("building",17)+'Empresa solicitante</h3><p>Aparece nas mensagens de cotação e no mapa comparativo impresso.</p>'+f("company","Nome da empresa","Ex.: Construtora Exemplo Ltda")+'<div class="row2">'+f("cnpj","CNPJ","00.000.000/0000-00")+f("requester","Solicitante / comprador","Seu nome")+'</div><div class="row2">'+f("phone","Telefone de compras","(85) 0000-0000","tel")+f("email","E-mail de compras","compras@empresa.com","email")+'</div>'+f("delivery","Endereço de entrega padrão","Rua, nº, bairro, cidade")+'</div>'+
- '<div class="card setcard"><h3>'+ico("radar",17)+'Fonte da varredura</h3><p>Igual à Órbita: a Geoapify localiza o endereço, varre cada segmento pelas categorias dele e desenha o mapa. O Google Maps fica só no botão "Ver no Maps" de cada empresa. A chave fica só neste navegador.</p>'+
- '<div class="srcrow"><span class="segico" style="--h:200">'+ico("globe",17)+'</span><div style="flex:1"><b>Geoapify</b> '+(S.geoKey?'<span class="badge ok">ativo</span>':'<span class="badge warn">obrigatória</span>')+'<p>A mesma chave usada na Órbita. Tem um plano gratuito mensal generoso. <a href="https://myprojects.geoapify.com/" target="_blank" rel="noopener" style="text-decoration:underline">Obter chave gratuita</a></p><div class="keyline"><input class="inp mono" id="st-geoKey" data-st="geoKey" type="password" placeholder="Chave Geoapify" value="'+esc(S.geoKey)+'" autocomplete="off"><button class="btn" type="button" id="testGeo">Testar</button></div></div></div>'+
- '<div class="srcrow"><span class="segico" style="--h:35">'+ico("layers",17)+'</span><div style="flex:1"><b>Profundidade da varredura</b><p>Fichas lidas por segmento em cada busca. Mais fichas encontram mais fornecedores e gastam mais cota da chave. Depois da busca, "Buscar mais fichas" lê a próxima página.</p><div class="seg3" role="group" aria-label="Profundidade">'+[1,2,3].map(n=>'<button type="button" class="chip'+((+S.depth||1)===n?" on":"")+'" data-depth="'+n+'">'+(n*40)+' fichas</button>').join("")+'</div></div></div></div>'+
- '<div class="card setcard"><h3>'+ico("mail",17)+'Mensagem de solicitação</h3><p>Modelo usado no WhatsApp, e-mail e cópia. Clique numa variável para inserir.</p><textarea class="ta" id="st-template" data-st="template" style="min-height:260px">'+esc(S.template)+'</textarea><div class="vars">'+["fornecedor","empresa","solicitante","telefone","email","itens","entrega","prazo","codigo","obra"].map(v=>'<code data-var="'+v+'">{'+v+'}</code>').join("")+'</div><div style="margin-top:12px"><button class="btn sm" type="button" id="resetTpl">Restaurar modelo padrão</button></div></div>'+
+  '<div class="card setcard"><h3>'+ico("map",17)+'Pesquisa no Maps</h3><p>As pesquisas abrem diretamente no Google Maps com a categoria e a cidade informadas. Nenhuma chave ou API de lugares é usada.</p>'+f("location","Cidade usada por padrão","Ex.: Fortaleza, CE")+'</div>'+
+'<div class="card setcard"><h3>'+ico("mail",17)+'Mensagem de solicitação</h3><p>Modelo usado no WhatsApp, e-mail e cópia. Clique numa variável para inserir.</p><textarea class="ta" id="st-template" data-st="template" style="min-height:260px">'+esc(S.template)+'</textarea><div class="vars">'+["fornecedor","empresa","solicitante","telefone","email","itens","entrega","prazo","codigo","obra"].map(v=>'<code data-var="'+v+'">{'+v+'}</code>').join("")+'</div><div style="margin-top:12px"><button class="btn sm" type="button" id="resetTpl">Restaurar modelo padrão</button></div></div>'+
  '<div class="card setcard"><h3>'+ico("database",17)+'Dados e backup</h3><p>Tudo fica salvo neste navegador. Exporte um backup para levar a outro computador ou guardar com segurança.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="bkExp">'+ico("download",16)+'Exportar backup</button><label class="btn" for="bkImp" tabindex="0">'+ico("upload",16)+'Importar backup<input class="hidden" id="bkImp" type="file" accept=".json,application/json"></label><button class="btn danger" type="button" id="wipe">'+ico("trash",16)+'Apagar tudo</button></div><div class="hint" style="margin-top:14px">'+suppliers.length+' fornecedores · '+processes.length+' cotações · chaves de API não entram no backup.</div></div></div>';
  el.querySelectorAll("[data-st]").forEach(i=>i.addEventListener("change",()=>{S[i.dataset.st]=i.value.trim?i.value.trim():i.value;saveSettings();toast("Ajuste salvo.")}));
  el.querySelectorAll("[data-var]").forEach(c=>c.onclick=()=>{const t=$("#st-template");const pos=t.selectionStart||t.value.length;t.value=t.value.slice(0,pos)+"{"+c.dataset.var+"}"+t.value.slice(pos);S.template=t.value;saveSettings();t.focus()});
  $("#resetTpl").onclick=()=>{S.template=DEFAULT_TEMPLATE;saveSettings();renderAjustes();toast("Modelo restaurado.")};
- $("#testGeo").onclick=async e=>{const k=$("#st-geoKey").value.trim();if(!k){toast("Cole a chave primeiro.");return}S.geoKey=k;saveSettings();e.target.disabled=true;try{const d=await httpJson("https://api.geoapify.com/v1/geocode/search?text=Fortaleza&limit=1&format=json&apiKey="+encodeURIComponent(k));toast(d&&d.results?"Geoapify respondeu: chave válida.":"Resposta inesperada da Geoapify.")}catch(err){toast(err.status===401||err.status===403?"A Geoapify recusou a chave.":"Falha ao testar: "+err.message)}finally{e.target.disabled=false}};
- el.querySelectorAll("[data-depth]").forEach(b=>b.onclick=()=>{S.depth=+b.dataset.depth;saveSettings();el.querySelectorAll("[data-depth]").forEach(x=>x.classList.toggle("on",x===b));toast("Profundidade: "+(S.depth*40)+" fichas por segmento.")});
- $("#bkExp").onclick=()=>{const {geoKey,...safe}=settings;download("suprimo-backup-"+new Date().toISOString().slice(0,10)+".json",JSON.stringify({app:"suprimo",version:1,exportedAt:new Date().toISOString(),settings:safe,suppliers,processes},null,2),"application/json")};
- $("#bkImp").onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const d=JSON.parse(await file.text());if(d.app!=="suprimo")throw 0;const sm=new Map(suppliers.map(s=>[s.id,s]));(d.suppliers||[]).forEach(s=>sm.set(s.id,{...sm.get(s.id),...s}));suppliers=[...sm.values()];const pm=new Map(processes.map(p=>[p.id,p]));(d.processes||[]).forEach(p=>pm.set(p.id,p));processes=[...pm.values()];if(d.settings){const {geoKey,...rest}=d.settings;Object.assign(settings,rest)}saveSettings();saveSuppliers();saveProcesses();toast("Backup importado e mesclado.");renderAjustes()}catch(err){toast("Arquivo inválido: não é um backup do Suprimo.")}finally{e.target.value=""}};
+ 
+ $("#bkExp").onclick=()=>{const {geoKey,depth,radius,...safe}=settings;download("suprimo-backup-"+new Date().toISOString().slice(0,10)+".json",JSON.stringify({app:"suprimo",version:1,exportedAt:new Date().toISOString(),settings:safe,suppliers,processes},null,2),"application/json")};
+ $("#bkImp").onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const d=JSON.parse(await file.text());if(d.app!=="suprimo")throw 0;const sm=new Map(suppliers.map(s=>[s.id,s]));(d.suppliers||[]).forEach(s=>sm.set(s.id,{...sm.get(s.id),...s}));suppliers=[...sm.values()];const pm=new Map(processes.map(p=>[p.id,p]));(d.processes||[]).forEach(p=>pm.set(p.id,p));processes=[...pm.values()];if(d.settings){const {geoKey,depth,radius,...rest}=d.settings;Object.assign(settings,rest)}saveSettings();saveSuppliers();saveProcesses();toast("Backup importado e mesclado.");renderAjustes()}catch(err){toast("Arquivo inválido: não é um backup do Suprimo.")}finally{e.target.value=""}};
  $("#wipe").onclick=async()=>{if(!await confirmBox("Apagar todos os dados?","Fornecedores, cotações e ajustes deste navegador serão removidos. Exporte um backup antes, se quiser guardar.","Apagar tudo",true))return;suppliers=[];processes=[];activeId=null;const t=settings.theme;settings={...settings,company:"",cnpj:"",requester:"",phone:"",email:"",delivery:"",template:DEFAULT_TEMPLATE};settings.theme=t;saveSettings();saveSuppliers();saveProcesses();toast("Dados apagados.");renderAjustes()}}
 
 /* ============================================================
