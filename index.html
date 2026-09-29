@@ -1294,8 +1294,8 @@ const SEGMENTS = [
 
  {id:"solar",label:"Energia solar",icon:"sun",hue:52,
   osm:['["shop"="solar"]','["craft"="photovoltaic"]','["trade"~"solar",i]'],
-  kw:["solar","fotovoltaica","fotovoltaico","energia solar","renováveis"],
-  terms:["energia solar","solar","painel solar","placa solar","modulo fotovoltaico","fotovoltaico","inversor solar","microinversor","string box","estrutura solar","bateria estacionaria","aquecedor solar","boiler"],
+  kw:["solar","fotovoltaica","fotovoltaico","energia solar","energia fotovoltaica","painel solar","placa solar","sistema fotovoltaico","instalação solar","integrador solar","microinversor","inversor solar","aquecimento solar","renováveis"],
+  terms:["energia solar","energia fotovoltaica","solar","painel solar","paineis solares","placa solar","placas solares","sistema fotovoltaico","instalacao solar","instalacao fotovoltaica","integrador solar","modulo fotovoltaico","fotovoltaico","fotovoltaica","inversor solar","microinversor","string box","estrutura solar","bateria estacionaria","aquecedor solar","aquecimento solar","boiler"],
   gq:["energia solar empresa","loja de energia solar"],
   geo:[]},
 
@@ -1580,7 +1580,7 @@ const SEG_RULES={
  agregados:{scan:["production.factory",HW+"building_materials"],nq:["areia","brita","concreteira","pré-moldados"]},
  hidraulica:{home:["commercial.furniture_and_interior.bathroom",HW+"swimming_pool"],scan:["commercial.trade",HW+"building_materials",HW+"hardware_and_tools"],nq:["hidráulica","hidraulica","tubos e conexões","materiais hidráulicos"],neg:["industrial"]},
  eletrica:{home:["commercial.furniture_and_interior.lighting"],scan:["commercial.trade",HW+"hardware_and_tools","commercial.elektronics"],nq:["elétrica","materiais elétricos","iluminação"],neg:["eletricista","automotiva","auto elétrica","auto eletrica"]},
- solar:{home:["commercial.energy","office.energy_supplier"],nq:["solar","fotovoltaica","energia solar"],neg:["hotel","pousada","condomínio","condominio","residencial","edifício","edificio","bronze","estética","estetica","salão","salao","restaurante","bar"]},
+ solar:{home:[],candidate:["commercial.energy","office.energy_supplier","service.electrician","commercial.elektronics"],nq:["solar","fotovoltaico","fotovoltaica","energia solar","energia fotovoltaica","painel solar","placa solar","sistema fotovoltaico","instalacao solar","instalacao fotovoltaica","integrador solar","inversor solar","microinversor","aquecimento solar"]},
  ferragens:{home:[HW+"hardware_and_tools","service.locksmith","service.key_cutter"],nq:["ferragens","parafusos"]},
  ferramentas:{home:[HW+"hardware_and_tools"],nq:["ferramentas","máquinas e ferramentas"]},
  tintas:{home:[HW+"building_materials.paint"],nq:["tintas"]},
@@ -1613,7 +1613,7 @@ const SEG_RULES={
  manutencao:{home:["service.electrician"],nq:["manutenção","reformas","dedetização"]},
  distribuidoras:{home:["commercial.department_store","commercial.discount_store","commercial.marketplace"],scan:["commercial.trade"],nq:["distribuidora","atacado"]}
 };
-SEGMENTS.forEach(s=>{const r=SEG_RULES[s.id]||{};s.home=r.home||[];s.scan=r.scan||[];s.nq=r.nq||[];s.neg=r.neg||[]});
+SEGMENTS.forEach(s=>{const r=SEG_RULES[s.id]||{};s.home=r.home||[];s.candidate=r.candidate||[];s.scan=r.scan||[];s.nq=r.nq||[];s.neg=r.neg||[]});
 
 /* Ícones em traço (estilo Lucide, 24x24) — nada de emoji */
 const ICONS={
@@ -1803,7 +1803,7 @@ function mkRecord(o){const t=o.tags||{};const pick=(...k)=>{for(const x of k){if
   hours:o.hours||pick("opening_hours"),
   cnpj:o.cnpj||pick("ref:vatin","ref:CNPJ","ref:cnpj").replace(/^BR/i,""),
   rating:o.rating||null,ratingCount:o.ratingCount||0,gmaps:o.gmaps||"",typeLabel:o.typeLabel||"",
-  tags:pickTags(t),sources:[o.src],segs:[]}}
+  tags:pickTags(t),sources:[o.src],segs:[],candidateSegs:[]}}
 function pickTags(t){const o={};["shop","craft","trade","amenity","office","industrial","landuse","healthcare","man_made","product","clothes","wholesale"].forEach(k=>{if(t[k])o[k]=t[k]});return o}
 const safeUrl=s=>{if(!s)return "";let v=String(s).trim();if(!/^https?:\/\//i.test(v)&&/^[\w-]+(\.[\w-]+)+/.test(v))v="https://"+v;try{const u=new URL(v);return /^https?:$/.test(u.protocol)?u.href:""}catch(e){return ""}};
 function normInsta(v){let s=String(v||"").trim();if(!s)return "";const m=s.match(/instagram\.com\/([A-Za-z0-9_.]+)/i);const h=m?m[1]:s.replace(/^@/,"");if(!/^[A-Za-z0-9_.]{2,30}$/.test(h)||["p","reel","explore"].includes(h.toLowerCase()))return "";return "https://www.instagram.com/"+h+"/"}
@@ -1839,12 +1839,13 @@ function fromGeo(f,job){const p=f.properties||{},raw=(p.datasource&&p.datasource
  const rec=mkRecord({id:osmId,name:p.name,lat:p.lat,lon:p.lon,tags:raw,src:"geo",street:[p.street,p.housenumber].filter(Boolean).join(", ")||(p.address_line1&&p.address_line1!==p.name?p.address_line1:""),suburb:p.suburb||p.district||p.quarter||"",city:p.city||"",state:p.state_code||p.state||"",postcode:p.postcode||"",phone:c.phone||"",email:c.email||"",hours:p.opening_hours||""});
  const web=rec.website;rec.website="";sortLinks(rec,[web,p.website]);
  rec.placeId=p.place_id;rec.hasRaw=Object.keys(raw).length>2;
- rec.geoSegs=segsFromCategories(p.categories);rec.catSegs=job&&job.seg?[job.seg]:[];return rec}
+ rec.geoSegs=segsFromCategories(p.categories);rec.catSegs=job&&job.seg?[job.seg]:[];rec.candidateSegs=job&&job.candidateSeg?[job.candidateSeg]:[];return rec}
 function buildJobs(segIds,interp){const cat=[],scanCats=new Set(),name1=[],nameN=[],homeAll=new Set(),focused=segIds.length<=3;
  if(interp.free&&interp.tokens.length){const t=interp.raw||interp.tokens.join(" ");
   cat.push({key:"free",label:'nome "'+t+'"',cats:NAME_CATS,name:interp.tokens.join(" ")});
   cat.push({key:"gfree",kind:"geocode",label:'endereços com "'+t+'"',text:t})}
- segIds.forEach(id=>{const s=SEG[id];const home=validCats(s.home);home.forEach(c=>homeAll.add(c));
+ segIds.forEach(id=>{const s=SEG[id];const home=validCats(s.home),candidate=validCats(s.candidate);home.forEach(c=>homeAll.add(c));candidate.forEach(c=>homeAll.add(c));
+  if(candidate.length)cat.push({key:"candidate:"+id,label:s.label+" (categoria ampla; revisar)",cats:candidate,candidateSeg:id});
   /* 1) categoria própria: o que volta já é do nicho (igual à Órbita) */
   if(home.length)cat.push({key:"c:"+id,label:s.label,cats:home,seg:id});
   validCats(s.scan).forEach(c=>scanCats.add(c));
@@ -1897,11 +1898,19 @@ const NEG_RX=Object.fromEntries(SEGMENTS.filter(s=>s.neg.length).map(s=>[s.id,kw
    OpenStreetMap ou o nicho escrito no nome. Nada de "talvez seja" por categoria genérica. */
 function classify(r){const byTag=[...(r.geoSegs||[])],byName=[],blocked=[];const tg={...(r.tags||{}),name:r.name};
  const label=r.name+(r.typeLabel?" · "+r.typeLabel:"");
- /* veio da consulta de categoria do nicho X (modelo Órbita): já é do nicho, salvo palavra de exclusão */
+ /* Categorias próprias e etiquetas específicas confirmam o segmento. */
  (r.catSegs||[]).forEach(id=>{if(NEG_RX[id]&&NEG_RX[id].test(r.name))blocked.push(id);else if(!byTag.includes(id))byTag.push(id)});
  SEG_TESTS.forEach(s=>{if(!byTag.includes(s.id)&&tagMatch(tg,s.groups))byTag.push(s.id);
   if(s.kw.test(label)){if(NEG_RX[s.id]&&NEG_RX[s.id].test(r.name))blocked.push(s.id);else if(!byName.includes(s.id))byName.push(s.id)}});
- r.segTag=[...new Set([...byTag,...byName])];r.segs=r.segTag;r.blocked=blocked;
+ /* Solar também aparece colado em marcas (EcoSolar, SunSolar). Termos de produto/serviço
+    são evidência direta; nome composto isolado vira candidato para revisão. */
+ const n=norm(label),words=n.split(" ");
+ const solarDirect=words.includes("solar")||/fotovolta|energia solar|painel solar|placa solar|sistema solar|instalacao solar|integrador solar|inversor solar|microinversor|aquecimento solar|modulo solar/.test(n);
+ const solarCompound=words.some(w=>w!=="solar"&&w.includes("solar"));
+ if(solarDirect&&!byName.includes("solar"))byName.push("solar");
+ const review=[...(r.candidateSegs||[])];
+ if(solarCompound&&!solarDirect)review.push("solar");
+ r.segTag=[...new Set([...byTag,...byName])];r.reviewSegs=[...new Set(review)].filter(id=>!r.segTag.includes(id));r.segs=[...new Set([...r.segTag,...r.reviewSegs])];r.blocked=blocked;
  return r}
 function merge(list){const byId=new Map();
  list.forEach(r=>{if(!r)return;const ex=byId.get(r.id);if(ex)absorb(ex,r);else byId.set(r.id,r)});
@@ -1914,13 +1923,14 @@ function merge(list){const byId=new Map();
   if(dup)absorb(dup,r);else out.push(r)});
  return out}
 function absorb(a,b){["street","suburb","city","state","postcode","phone","whatsapp","email","website","instagram","facebook","hours","cnpj","gmaps","typeLabel"].forEach(k=>{if(!a[k]&&b[k])a[k]=b[k]});if(b.rating&&!a.rating){a.rating=b.rating;a.ratingCount=b.ratingCount}a.tags={...b.tags,...a.tags};a.sources=[...new Set([...a.sources,...b.sources])];
- a.geoSegs=[...new Set([...(a.geoSegs||[]),...(b.geoSegs||[])])];a.catSegs=[...new Set([...(a.catSegs||[]),...(b.catSegs||[])])];if(!a.placeId&&b.placeId){a.placeId=b.placeId;a.hasRaw=b.hasRaw}}
+ a.geoSegs=[...new Set([...(a.geoSegs||[]),...(b.geoSegs||[])])];a.catSegs=[...new Set([...(a.catSegs||[]),...(b.catSegs||[])])];a.candidateSegs=[...new Set([...(a.candidateSegs||[]),...(b.candidateSegs||[])])];if(!a.placeId&&b.placeId){a.placeId=b.placeId;a.hasRaw=b.hasRaw}}
 function contactScore(r){let s=0;if(r.phone)s+=2;if(r.whatsapp||isMobile(r.phone))s+=1;if(r.email)s+=1;if(r.website||r.instagram)s+=1;return s}/* 0..5 */
 function scoreRecord(r,interp,center,wanted){
  const nameN=norm(r.name);let s=0;
  const hitName=interp.tokens.some(t=>t.length>=3&&nameN.includes(sing(t)));if(hitName)s+=34;
  const tagHit=r.segTag.some(x=>wanted.includes(x)),anyHit=r.segs.some(x=>wanted.includes(x));
  if(tagHit)s+=30;else if(anyHit)s+=14;
+ if((r.reviewSegs||[]).some(x=>wanted.includes(x))&&!r.segTag.some(x=>wanted.includes(x)))s-=12;
  if(r.segs.length&&!anyHit&&!hitName)s-=18;
  s+=contactScore(r)*4+(r.street?3:0)+(r.hours?2:0);
  if(r.rating)s+=Math.min(6,(r.rating-3)*3)+Math.min(4,Math.log10((r.ratingCount||1))*2);
@@ -2187,7 +2197,7 @@ function cardHTML(r){const seg=SEG[r.primary]||SEG.distribuidoras;const saved=!!
  const cq=contactScore(r);
  const others=r.segs.filter(s=>s!==r.primary).slice(0,2);
  return '<article class="rcard" data-id="'+esc(r.id)+'"><span class="segico" style="--h:'+seg.hue+'">'+ico(seg.icon,19)+'</span><div style="min-width:0"><h4 class="nm">'+esc(r.name)+(saved?'<span class="badge acc">'+ico("bookmark",11)+'Na base</span>':"")+(invited?'<span class="badge ok">'+ico("check",11)+'Na '+esc(p.code)+'</span>':"")+'</h4>'+
- '<div class="meta">'+segTag(r.primary)+others.map(segTag).join("")+(r.typeLabel?'<span class="badge">'+esc(r.typeLabel)+'</span>':"")+(r.rating?'<span class="stars">'+ico("star",12)+num(r.rating,1)+' <span class="soft">('+r.ratingCount+')</span></span>':"")+'</div>'+
+ '<div class="meta">'+segTag(r.primary)+others.map(segTag).join("")+(r.reviewSegs&&r.reviewSegs.includes(r.primary)?'<span class="badge warn">Possível solar · validar</span>':"")+(r.typeLabel?'<span class="badge">'+esc(r.typeLabel)+'</span>':"")+(r.rating?'<span class="stars">'+ico("star",12)+num(r.rating,1)+' <span class="soft">('+r.ratingCount+')</span></span>':"")+'</div>'+
  '<div class="addr">'+ico("pin",13)+'<span>'+(addr?esc(addr):'<span class="soft">Endereço não cadastrado na fonte</span>')+'</span></div>'+
  '<div class="contacts">'+(r.phone?'<a class="cbtn" href="tel:+55'+phoneDigits(r.phone)+'">'+ico("phone",14)+'<span>'+esc(fmtPhone(r.phone))+'</span></a>':'')+
  (wa?'<a class="cbtn wa" href="https://wa.me/'+wa+'" target="_blank" rel="noopener" title="'+(mob?"WhatsApp":"Número fixo — pode ter WhatsApp Business")+'">'+ico("whats",14)+'<span>WhatsApp'+(mob?"":" (fixo)")+'</span></a>':'')+
