@@ -1839,8 +1839,8 @@ function fromGeo(f,job){const p=f.properties||{},raw=(p.datasource&&p.datasource
  const rec=mkRecord({id:osmId,name:p.name,lat:p.lat,lon:p.lon,tags:raw,src:"geo",street:[p.street,p.housenumber].filter(Boolean).join(", ")||(p.address_line1&&p.address_line1!==p.name?p.address_line1:""),suburb:p.suburb||p.district||p.quarter||"",city:p.city||"",state:p.state_code||p.state||"",postcode:p.postcode||"",phone:c.phone||"",email:c.email||"",hours:p.opening_hours||""});
  const web=rec.website;rec.website="";sortLinks(rec,[web,p.website]);
  rec.placeId=p.place_id;rec.hasRaw=Object.keys(raw).length>2;
- rec.geoSegs=segsFromCategories(p.categories);rec.catSegs=job&&job.seg?[job.seg]:[];rec.candidateSegs=job&&job.candidateSeg?[job.candidateSeg]:[];return rec}
-function buildJobs(segIds,interp){const cat=[],scanCats=new Set(),name1=[],nameN=[],homeAll=new Set(),focused=segIds.length<=3;
+ rec.geoSegs=segsFromCategories(p.categories);rec.catSegs=job&&job.seg?[job.seg]:[];const categoryCandidates=(job&&job.candidateMap||[]).filter(m=>(p.categories||[]).some(pc=>pc===m.category||pc.startsWith(m.category+".")||m.category.startsWith(pc+"."))).flatMap(m=>m.segs);rec.candidateSegs=[...new Set([...(job&&job.candidateSeg?[job.candidateSeg]:[]),...categoryCandidates])];return rec}
+function buildJobs(segIds,interp){const cat=[],scanCats=new Map(),name1=[],nameN=[],homeAll=new Set(),focused=segIds.length<=3;
  if(interp.free&&interp.tokens.length){const t=interp.raw||interp.tokens.join(" ");
   cat.push({key:"free",label:'nome "'+t+'"',cats:NAME_CATS,name:interp.tokens.join(" ")});
   cat.push({key:"gfree",kind:"geocode",label:'endereços com "'+t+'"',text:t})}
@@ -1848,15 +1848,16 @@ function buildJobs(segIds,interp){const cat=[],scanCats=new Set(),name1=[],nameN
   if(candidate.length)cat.push({key:"candidate:"+id,label:s.label+" (categoria ampla; revisar)",cats:candidate,candidateSeg:id});
   /* 1) categoria própria: o que volta já é do nicho (igual à Órbita) */
   if(home.length)cat.push({key:"c:"+id,label:s.label,cats:home,seg:id});
-  validCats(s.scan).forEach(c=>scanCats.add(c));
+  validCats(s.scan).forEach(c=>{if(!scanCats.has(c))scanCats.set(c,new Set());scanCats.get(c).add(id)});
   /* 2) nome do estabelecimento: Places (filtro por nome) + geocodificador (busca livre por nome) */
   /* busca focada (até 3 nichos): todos os termos de nome; varredura grande: só o principal */
   s.nq.forEach((t,i)=>{if(!focused&&(home.length?i>0:i>1))return;
    (i===0?name1:nameN).push({key:"n:"+id+":"+t,label:s.label+' (nome "'+t+'")',cats:NAME_CATS,name:t});
    if(i<(focused?2:home.length?0:1))(i===0?name1:nameN).push({key:"g:"+id+":"+t,kind:"geocode",label:s.label+' (busca "'+t+'")',text:t})})});
  /* 3) categorias onde o nicho aparece misturado: uma consulta só, e só fica quem o nome/etiqueta confirmar */
- const scan=[...scanCats].filter(c=>!homeAll.has(c));
- const scanJob=scan.length?[{key:"scan",label:"lojas e fornecedores gerais",cats:scan}]:[];
+ const scan=[...scanCats.keys()].filter(c=>!homeAll.has(c));
+ const candidateMap=scan.map(category=>({category,segs:[...scanCats.get(category)]}));
+ const scanJob=scan.length?[{key:"scan",label:"categorias amplas (candidatos para validar)",cats:scan,candidateMap}]:[];
  return [...cat,...name1,...scanJob,...nameN].slice(0,MAX_JOBS).map(j=>({...j,offset:0,done:false,n:0}))}
 /* geocodificador da Geoapify: acha estabelecimentos pelo nome (ex.: "energia solar"), dentro do raio */
 async function geocodePOI(j,center,radius,signal){const u=new URL("https://api.geoapify.com/v1/geocode/search");
@@ -2197,7 +2198,7 @@ function cardHTML(r){const seg=SEG[r.primary]||SEG.distribuidoras;const saved=!!
  const cq=contactScore(r);
  const others=r.segs.filter(s=>s!==r.primary).slice(0,2);
  return '<article class="rcard" data-id="'+esc(r.id)+'"><span class="segico" style="--h:'+seg.hue+'">'+ico(seg.icon,19)+'</span><div style="min-width:0"><h4 class="nm">'+esc(r.name)+(saved?'<span class="badge acc">'+ico("bookmark",11)+'Na base</span>':"")+(invited?'<span class="badge ok">'+ico("check",11)+'Na '+esc(p.code)+'</span>':"")+'</h4>'+
- '<div class="meta">'+segTag(r.primary)+others.map(segTag).join("")+(r.reviewSegs&&r.reviewSegs.includes(r.primary)?'<span class="badge warn">Possível solar · validar</span>':"")+(r.typeLabel?'<span class="badge">'+esc(r.typeLabel)+'</span>':"")+(r.rating?'<span class="stars">'+ico("star",12)+num(r.rating,1)+' <span class="soft">('+r.ratingCount+')</span></span>':"")+'</div>'+
+ '<div class="meta">'+segTag(r.primary)+others.map(segTag).join("")+(r.reviewSegs&&r.reviewSegs.includes(r.primary)?'<span class="badge warn">Possível · validar segmento</span>':"")+(r.typeLabel?'<span class="badge">'+esc(r.typeLabel)+'</span>':"")+(r.rating?'<span class="stars">'+ico("star",12)+num(r.rating,1)+' <span class="soft">('+r.ratingCount+')</span></span>':"")+'</div>'+
  '<div class="addr">'+ico("pin",13)+'<span>'+(addr?esc(addr):'<span class="soft">Endereço não cadastrado na fonte</span>')+'</span></div>'+
  '<div class="contacts">'+(r.phone?'<a class="cbtn" href="tel:+55'+phoneDigits(r.phone)+'">'+ico("phone",14)+'<span>'+esc(fmtPhone(r.phone))+'</span></a>':'')+
  (wa?'<a class="cbtn wa" href="https://wa.me/'+wa+'" target="_blank" rel="noopener" title="'+(mob?"WhatsApp":"Número fixo — pode ter WhatsApp Business")+'">'+ico("whats",14)+'<span>WhatsApp'+(mob?"":" (fixo)")+'</span></a>':'')+
