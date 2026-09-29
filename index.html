@@ -1839,7 +1839,7 @@ function fromGeo(f,job){const p=f.properties||{},raw=(p.datasource&&p.datasource
  const rec=mkRecord({id:osmId,name:p.name,lat:p.lat,lon:p.lon,tags:raw,src:"geo",street:[p.street,p.housenumber].filter(Boolean).join(", ")||(p.address_line1&&p.address_line1!==p.name?p.address_line1:""),suburb:p.suburb||p.district||p.quarter||"",city:p.city||"",state:p.state_code||p.state||"",postcode:p.postcode||"",phone:c.phone||"",email:c.email||"",hours:p.opening_hours||""});
  const web=rec.website;rec.website="";sortLinks(rec,[web,p.website]);
  rec.placeId=p.place_id;rec.hasRaw=Object.keys(raw).length>2;
- rec.geoSegs=segsFromCategories(p.categories);rec.catSegs=job&&job.seg?[job.seg]:[];const categoryCandidates=(job&&job.candidateMap||[]).filter(m=>(p.categories||[]).some(pc=>pc===m.category||pc.startsWith(m.category+".")||m.category.startsWith(pc+"."))).flatMap(m=>m.segs);rec.candidateSegs=[...new Set([...(job&&job.candidateSeg?[job.candidateSeg]:[]),...categoryCandidates])];return rec}
+ rec.geoSegs=segsFromCategories(p.categories);rec.catSegs=job&&job.seg?[job.seg]:[];const categoryCandidates=(job&&job.candidateMap||[]).filter(m=>(p.categories||[]).some(pc=>pc===m.category||pc.startsWith(m.category+"."))).flatMap(m=>m.segs);rec.candidateSegs=[...new Set([...(job&&job.candidateSeg?[job.candidateSeg]:[]),...categoryCandidates])];return rec}
 function buildJobs(segIds,interp){const cat=[],scanCats=new Map(),name1=[],nameN=[],homeAll=new Set(),focused=segIds.length<=3;
  if(interp.free&&interp.tokens.length){const t=interp.raw||interp.tokens.join(" ");
   cat.push({key:"free",label:'nome "'+t+'"',cats:NAME_CATS,name:interp.tokens.join(" ")});
