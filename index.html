@@ -1203,6 +1203,12 @@ main{position:relative;z-index:1}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
+/* profundidade da varredura e "buscar mais fichas" */
+.seg3{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.morescan{display:flex;justify-content:center;margin-top:14px}
+.morescan:empty{display:none}
+.empty .btns #moreScan{order:-1}
+
 </style>
 </head>
 <body>
@@ -1232,7 +1238,7 @@ main{position:relative;z-index:1}
 </main>
 <footer class="foot">
  <span>Suprimo · os dados ficam salvos neste navegador. Confirme preços, prazos e cadastro diretamente com cada fornecedor.</span>
- <span>Mapas e locais: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> · CNPJ: <a href="https://brasilapi.com.br" target="_blank" rel="noopener">BrasilAPI</a></span>
+ <span>Mapas e locais: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · <a href="https://www.geoapify.com/" target="_blank" rel="noopener">Geoapify</a> · CNPJ: <a href="https://brasilapi.com.br" target="_blank" rel="noopener">BrasilAPI</a></span>
 </footer>
 <div id="overlay"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -1281,7 +1287,7 @@ const SEGMENTS = [
 
  {id:"eletrica",label:"Material elétrico e iluminação",icon:"zap",hue:48,
   osm:['["shop"~"^(electrical|lighting|electrical_supplies)$"]','["trade"~"electric",i]','["craft"="electrician"]'],
-  kw:["elétrica","eletrica","elétrico","material elétrico","materiais elétricos","eletro","iluminação","luminárias","lâmpadas","cabos","fios","energia","eletrotécnica","automação","led"],
+  kw:["elétrica","eletrica","elétrico","material elétrico","materiais elétricos","eletrotécnica","iluminação","luminárias","lâmpadas","cabos","fios","eletrotécnica","automação","led"],
   terms:["eletrica","eletrico","material eletrico","materiais eletricos","fio","fios","cabo","cabos","cabo flexivel","cabo pp","fio 2,5","fio 4mm","disjuntor","disjuntores","dr","idr","dps","quadro de distribuicao","quadro eletrico","qdc","barramento","tomada","tomadas","interruptor","plugue","extensao","filtro de linha","eletroduto","conduite","eletrocalha","perfilado","leito","canaleta","caixa de passagem","caixa 4x2","lampada","lampadas","led","luminaria","luminarias","refletor","reflectores","plafon","spot","fita led","reator","sensor de presenca","rele","fotocelula","contator","rele termico","inversor de frequencia","soft starter","terminal","conector","fita isolante","fita de autofusao","haste de aterramento","aterramento","para raio","spda","poste","padrao de energia","medidor","transformador","gerador","estabilizador","iluminacao","iluminacao publica","energia","eletricista","instalacao eletrica"],
   gq:["loja de material elétrico","distribuidora de material elétrico","iluminação led loja"],
   geo:["commercial.houseware_and_hardware.hardware_and_tools","commercial.furniture_and_interior.lighting","commercial.elektronics"]},
@@ -1291,7 +1297,7 @@ const SEGMENTS = [
   kw:["solar","fotovoltaica","fotovoltaico","energia solar","renováveis"],
   terms:["energia solar","solar","painel solar","placa solar","modulo fotovoltaico","fotovoltaico","inversor solar","microinversor","string box","estrutura solar","bateria estacionaria","aquecedor solar","boiler"],
   gq:["energia solar empresa","loja de energia solar"],
-  geo:["commercial.houseware_and_hardware"]},
+  geo:[]},
 
  {id:"ferragens",label:"Ferragens e fixadores",icon:"bolt",hue:210,
   osm:['["shop"~"^(hardware|fasteners|doityourself|locksmith)$"]','["trade"~"fastener|hardware",i]'],
@@ -1302,7 +1308,7 @@ const SEGMENTS = [
 
  {id:"ferramentas",label:"Ferramentas e máquinas",icon:"wrench",hue:220,
   osm:['["shop"~"^(tools|power_tools|hardware|doityourself)$"]','["trade"~"tool|machin",i]'],
-  kw:["ferramentas","ferramenta","máquinas","maquinas","equipamentos","makita","bosch","dewalt","stanley","tramontina","vonder","compressores","geradores"],
+  kw:["ferramentas","ferramenta","máquinas","maquinas","makita","bosch","dewalt","stanley","tramontina","vonder","compressores","geradores"],
   terms:["ferramenta","ferramentas","ferramenta eletrica","ferramentas eletricas","martelo","marreta","alicate","chave de fenda","chave philips","jogo de chaves","chave inglesa","chave de boca","chave allen","trena","nivel","prumo","esquadro","serrote","arco de serra","serra","serra circular","serra marmore","serra tico tico","furadeira","parafusadeira","martelete","rompedor","esmerilhadeira","lixadeira","plaina","tupia","disco de corte","disco de desbaste","disco diamantado","broca","brocas","lixa","lixas","compressor","gerador","motosserra","rocadeira","lavadora de alta pressao","maquina de solda","inversora de solda","soldagem","torno","morsa","bancada","escada","escada de aluminio","carrinho","paleteira","talha","macaco hidraulico","colher de pedreiro","desempenadeira","enxada","pa","picareta","cavadeira","alavanca","ponteiro","talhadeira","bateria de ferramenta","caixa de ferramentas","maquinas","equipamentos"],
   gq:["loja de ferramentas","ferramentas elétricas loja","máquinas e ferramentas"],
   geo:["commercial.houseware_and_hardware.hardware_and_tools"]},
@@ -1407,7 +1413,7 @@ const SEGMENTS = [
 
  {id:"climatizacao",label:"Ar-condicionado e refrigeração",icon:"snow",hue:195,
   osm:['["shop"~"^(air_conditioning|hvac|refrigeration)$"]','["craft"~"^(hvac|refrigeration|air_conditioning)$"]','["trade"~"hvac|air|refriger",i]'],
-  kw:["refrigeração","refrigeracao","ar condicionado","ar-condicionado","climatização","climatizacao","frio","refrigerações","clima","split","polar","gelo"],
+  kw:["refrigeração","refrigeracao","ar condicionado","ar-condicionado","climatização","climatizacao","refrigerações","split"],
   terms:["ar condicionado","ar-condicionado","ar condicionados","split","inverter","climatizacao","refrigeracao","refrigerador industrial","camara fria","balcao refrigerado","gas refrigerante","r410","r22","r32","compressor de ar condicionado","capacitor de ar","tubo de cobre","manutencao de ar condicionado","instalacao de ar condicionado","higienizacao de ar","pmoc","exaustor","exaustao","ventilacao","coifa","cortina de ar","duto","dutos","fancoil","chiller","vrf","gelo","maquina de gelo"],
   gq:["ar-condicionado instalação e manutenção","refrigeração peças","loja de ar-condicionado"],
   geo:["commercial.elektronics","commercial.houseware_and_hardware"]},
@@ -1442,7 +1448,7 @@ const SEGMENTS = [
 
  {id:"locacao",label:"Locação de equipamentos",icon:"crane",hue:38,
   osm:['["shop"~"^(tool_hire|rental|equipment_rental)$"]','["amenity"~"^(equipment_rental|rental)$"]','["office"~"rental",i]','["craft"="scaffolder"]'],
-  kw:["locação","locacao","locadora","aluguel","andaimes","andaime","rental","equipamentos","locamaq","escoras","container","containers","guindastes","munck","plataformas"],
+  kw:["locação","locacao","locadora","aluguel","andaimes","andaime","rental","locamaq","escoras","container","containers","guindastes","munck","plataformas"],
   terms:["locacao","aluguel","alugar","locadora","locacao de equipamentos","andaime","andaimes","escora","escoras","escora metalica","betoneira","compactador","compactador de solo","sapo","placa vibratoria","vibrador de concreto","gerador","locacao de gerador","martelete","rompedor","plataforma elevatoria","plataforma tesoura","empilhadeira","retroescavadeira","escavadeira","mini carregadeira","bobcat","munck","guindaste","caminhao munck","container","container escritorio","container almoxarifado","banheiro quimico","cabine sanitaria","andaime fachadeiro","torre de iluminacao","rolo compactador","bomba de concreto","elevador de obra","guincho de coluna","cremalheira"],
   gq:["locação de equipamentos para construção","aluguel de andaimes","locação de máquinas pesadas"],
   geo:["rental"]},
@@ -1505,7 +1511,7 @@ const SEGMENTS = [
 
  {id:"distribuidoras",label:"Atacados e distribuidoras gerais",icon:"warehouse",hue:180,
   osm:['["shop"~"^(wholesale|trade|variety_store|general|department_store|discount|mall)$"]','["wholesale"]'],
-  kw:["distribuidora","distribuidor","atacado","atacadista","depósito","deposito","armazém","armazem","variedades","importadora","representações","representacoes"],
+  kw:["distribuidora","distribuidor","atacado","atacadista","armazém","armazem","variedades","importadora","representações","representacoes"],
   terms:["distribuidora","distribuidor","atacado","atacadista","comercial","representante","representacao","fornecedor","fornecedores","importadora","revenda","utilidades","utilidades domesticas","variedades","loja de 1,99","magazine","loja de departamento","almoxarifado","suprimentos","insumos","materiais diversos","material de consumo","material permanente","compras"],
   gq:["distribuidora atacado","atacado de materiais diversos"],
   geo:["commercial.department_store","commercial.discount_store","commercial.marketplace"]}
@@ -1553,6 +1559,61 @@ const STOPWORDS=new Set(["de","da","do","das","dos","e","em","para","pra","com",
 
 /* exemplos exibidos nos cartões de segmento */
 const SAMPLES={construcao:"cimento, tijolo, telha, argamassa",agregados:"areia, brita, concreto usinado",hidraulica:"tubos, conexões, registros, caixa d'água",eletrica:"cabos, disjuntores, tomadas, LED",solar:"painéis, inversores, estruturas",ferragens:"parafusos, buchas, cadeados, correntes",ferramentas:"furadeiras, discos, trenas, escadas",tintas:"tintas, massa corrida, rolos, thinner",madeira:"compensado, MDF, caibro, pallets",metais:"vergalhão, metalon, chapas, solda",vidros:"vidro temperado, box, esquadrias",revestimentos:"porcelanato, piso, granito, rejunte",gesso:"drywall, forro PVC, gesso, lã de rocha",epi:"luvas, capacetes, botinas, uniformes",incendio:"extintores, recargas, sinalização",limpeza:"detergente, papel toalha, sacos de lixo",descartaveis:"copos, marmitex, stretch, caixas",escritorio:"papel A4, toner, canetas, pastas",informatica:"notebooks, switches, cabos de rede",eletronicos:"pilhas, bebedouros, ventiladores",seguranca:"câmeras, DVR, alarmes, catracas",climatizacao:"split, PMOC, gás refrigerante",gases:"GLP, oxigênio, acetileno, argônio",combustiveis:"diesel S10, óleo, graxa, Arla",automotivo:"pneus, baterias, filtros, oficina",industrial:"rolamentos, correias, mangueiras",locacao:"andaimes, betoneiras, containers",residuos:"caçambas, coleta, reciclagem",transporte:"fretes, carretos, transportadoras",jardinagem:"mudas, adubo, irrigação, roçadeiras",moveis:"estantes de aço, porta-pallets, cadeiras",alimentos:"água mineral, café, refeições",grafica:"placas, banners, adesivos, crachás",saude:"kits de primeiros socorros, farmácia",manutencao:"eletricista, dedetização, reformas",distribuidoras:"atacados, representantes, importadoras"};
+
+
+/* ============================================================
+   COMO O SUPRIMO DECIDE O NICHO DE CADA LOCAL
+   home : categorias da Geoapify que, sozinhas, provam que o local é do segmento.
+          Segmento sem "home" (ex.: energia solar, hidráulica, EPI) não existe no
+          catálogo da Geoapify — nesses casos só entra quem tem o nicho no NOME
+          (ou a etiqueta certa no OpenStreetMap).
+   nq   : termos buscados direto no NOME dos estabelecimentos (varredura por nome).
+   neg  : se o nome tiver isso, NÃO é do segmento (ex.: "Depósito de Bebidas").
+   ============================================================ */
+const HW="commercial.houseware_and_hardware.";
+/* home : categoria da Geoapify que já prova o nicho (varredura estilo Órbita — o que volta é do segmento)
+   scan : categorias onde o nicho costuma aparecer misturado; só entra quem o nome ou a etiqueta confirmar
+   nq   : termos procurados no NOME dos estabelecimentos
+   neg  : se o nome tiver isso, NÃO é do segmento */
+const SEG_RULES={
+ construcao:{home:[HW+"building_materials",HW+"doityourself","commercial.trade"],nq:["material de construção","materiais de construção","home center"],neg:["bebida","bebidas","cerveja","gelo","água mineral","agua mineral","gás","gas","ração","racao","construtora"]},
+ agregados:{scan:["production.factory",HW+"building_materials"],nq:["areia","brita","concreteira","pré-moldados"]},
+ hidraulica:{home:["commercial.furniture_and_interior.bathroom",HW+"swimming_pool"],scan:["commercial.trade",HW+"building_materials",HW+"hardware_and_tools"],nq:["hidráulica","hidraulica","tubos e conexões","materiais hidráulicos"],neg:["industrial"]},
+ eletrica:{home:["commercial.furniture_and_interior.lighting"],scan:["commercial.trade",HW+"hardware_and_tools","commercial.elektronics"],nq:["elétrica","materiais elétricos","iluminação"],neg:["eletricista","automotiva","auto elétrica","auto eletrica"]},
+ solar:{home:["commercial.energy","office.energy_supplier"],nq:["solar","fotovoltaica","energia solar"],neg:["hotel","pousada","condomínio","condominio","residencial","edifício","edificio","bronze","estética","estetica","salão","salao","restaurante","bar"]},
+ ferragens:{home:[HW+"hardware_and_tools","service.locksmith","service.key_cutter"],nq:["ferragens","parafusos"]},
+ ferramentas:{home:[HW+"hardware_and_tools"],nq:["ferramentas","máquinas e ferramentas"]},
+ tintas:{home:[HW+"building_materials.paint"],nq:["tintas"]},
+ madeira:{home:["service.carpenter"],scan:[HW+"building_materials",HW+"doityourself"],nq:["madeireira","madeiras","compensados"]},
+ metais:{home:["service.metal_construction","service.blacksmith"],scan:[HW+"building_materials","commercial.trade"],nq:["aços","serralheria","metalúrgica"],neg:["açougue","acougue"]},
+ vidros:{home:[HW+"building_materials.glaziery",HW+"building_materials.windows",HW+"building_materials.doors"],nq:["vidraçaria","vidros"]},
+ revestimentos:{home:[HW+"building_materials.tiles",HW+"building_materials.flooring","commercial.furniture_and_interior.carpet"],nq:["revestimentos","porcelanato","marmoraria"]},
+ gesso:{scan:[HW+"building_materials"],nq:["gesso","drywall","forros"]},
+ epi:{scan:[HW+"hardware_and_tools","commercial.clothing"],nq:["epi","segurança do trabalho","uniformes"],neg:["escolar","escolares"]},
+ incendio:{scan:[HW+"hardware_and_tools"],nq:["extintores","incêndio"]},
+ limpeza:{scan:["commercial.chemist","commercial.discount_store"],nq:["limpeza","higiene","saneantes"],neg:["serviços de limpeza","lavanderia","limpeza de pele","estética","estetica"]},
+ descartaveis:{scan:["commercial.discount_store"],nq:["descartáveis","embalagens"]},
+ escritorio:{home:["commercial.stationery"],nq:["papelaria","escritório"]},
+ informatica:{home:["office.it","office.telecommunication"],scan:["commercial.elektronics"],nq:["informática","computadores"]},
+ eletronicos:{home:["commercial.elektronics"],nq:["eletrônicos","eletrodomésticos"]},
+ seguranca:{home:["office.security"],scan:["commercial.elektronics"],nq:["segurança eletrônica","câmeras","alarmes"]},
+ climatizacao:{scan:["commercial.elektronics",HW+"hardware_and_tools"],nq:["refrigeração","ar condicionado","climatização"]},
+ gases:{home:["commercial.gas"],nq:["gases","oxigênio"]},
+ combustiveis:{home:["service.vehicle.fuel"],nq:["lubrificantes","combustíveis"],neg:["saúde","saude","policial","médico","medico","atendimento"]},
+ automotivo:{home:["commercial.vehicle","service.vehicle.repair"],nq:["autopeças","pneus"]},
+ industrial:{scan:["production.factory",HW+"hardware_and_tools","commercial.trade"],nq:["rolamentos","correias","industrial"]},
+ locacao:{scan:["rental"],nq:["locação","locadora de equipamentos","andaimes"],neg:["veículos","veiculos","carros","filmes","trajes","roupas"]},
+ residuos:{nq:["caçamba","reciclagem","entulho"]},
+ transporte:{home:["office.logistics"],nq:["transportadora","fretes","logística"]},
+ jardinagem:{home:["commercial.garden","commercial.agrarian"],nq:["agropecuária","jardinagem","irrigação"]},
+ moveis:{home:["commercial.furniture_and_interior"],nq:["móveis","estantes"]},
+ alimentos:{home:["commercial.supermarket","commercial.food_and_drink","catering"],nq:["atacadista","água mineral"]},
+ grafica:{home:["service.advertising","office.advertising_agency"],scan:["commercial.stationery"],nq:["gráfica","comunicação visual"]},
+ saude:{home:["commercial.health_and_beauty.pharmacy","commercial.health_and_beauty.medical_supply","healthcare"],nq:["farmácia","hospitalar"]},
+ manutencao:{home:["service.electrician"],nq:["manutenção","reformas","dedetização"]},
+ distribuidoras:{home:["commercial.department_store","commercial.discount_store","commercial.marketplace"],scan:["commercial.trade"],nq:["distribuidora","atacado"]}
+};
+SEGMENTS.forEach(s=>{const r=SEG_RULES[s.id]||{};s.home=r.home||[];s.scan=r.scan||[];s.nq=r.nq||[];s.neg=r.neg||[]});
 
 /* Ícones em traço (estilo Lucide, 24x24) — nada de emoji */
 const ICONS={
@@ -1658,7 +1719,8 @@ const CATALOG_INDEX=ITEM_CATALOG.map(([d,u,s])=>({d,u,s,n:norm(d)}));
 /* regex tolerante a acentos e maiúsculas (serve para Overpass e JS) */
 /* alternância (e não colchetes) para funcionar mesmo em motores regex que leem bytes UTF-8 */
 const FOLD={a:"(a|á|à|â|ã|Á|À|Â|Ã)",e:"(e|é|ê|É|Ê)",i:"(i|í|Í)",o:"(o|ó|ô|õ|Ó|Ô|Õ)",u:"(u|ú|ü|Ú|Ü)",c:"(c|ç|Ç)"};
-function fold2rx(word){const w=norm(word).replace(/,/g,"");let out="";for(const ch of w){if(FOLD[ch])out+=FOLD[ch];else if(ch===" ")out+="[ .-]*";else out+=ch.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}if(w.length<=3)out="(^|[^a-zA-Z])"+out+"([^a-zA-Z]|$)";else if(w.length<=4)out="(^|[^a-zA-Z])"+out;return out}
+function fold2rx(word){const w=norm(word).replace(/,/g,"");let out="";for(const ch of w){if(FOLD[ch])out+=FOLD[ch];else if(ch===" ")out+="[ .-]*";else out+=ch.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}/* sempre no início de palavra ("areal" não casa com "Mareal"); palavras curtas também no fim */
+ if(w.length<=3)out="(^|[^a-zA-Z])"+out+"([^a-zA-Z]|$)";else out="(^|[^a-zA-Z])"+out;return out}
 const rxCache=new Map();
 function kwRegex(list){const key=list.join("|");if(!rxCache.has(key))rxCache.set(key,new RegExp(list.map(fold2rx).join("|"),"i"));return rxCache.get(key)}
 
@@ -1671,19 +1733,22 @@ function interpret(raw){
  const q=tokens.join(" "), qs=singPhrase(q);
  const scores=[];
  if(q){
-  SEG_INDEX.forEach(si=>{let sc=0;const why=new Set();
+  SEG_INDEX.forEach(si=>{let sc=0,exact=false;const why=new Set();
    if(si.label===q||si.label.includes(q)&&q.length>=5){sc+=60}
    si.terms.forEach(({t,st})=>{let v=0;
-    if(t===q||st===qs)v=100;
+    if(t===q||st===qs){v=100;exact=true}
     else if((" "+qs+" ").includes(" "+st+" "))v=22+st.length;
     else if(q.length>=4&&(t.startsWith(q)||st.startsWith(qs)))v=14;
     else{tokens.forEach(tk=>{const sk=sing(tk);if(sk.length<3)return;if(sk===st)v=Math.max(v,26);else if(st.split(" ").includes(sk))v=Math.max(v,sk.length>=5?12:6);else if(sk.length>=5&&st.startsWith(sk))v=Math.max(v,8)})}
     if(v){sc+=v;if(why.size<6)why.add(t)}});
-   if(sc)scores.push({id:si.id,score:sc,why:[...why]})});
+   if(sc)scores.push({id:si.id,score:sc,exact,why:[...why]})});
  }
  scores.sort((a,b)=>b.score-a.score);
  const top=scores[0]?scores[0].score:0;
- const segs=scores.filter((s,i)=>s.score>=12&&(i<2||s.score>=top*0.45)).slice(0,5);
+ /* o termo inteiro bateu em cheio num segmento ("placa solar")? então palavras soltas
+    ("placa" -> gráfica) não puxam outro nicho junto */
+ const anyExact=scores.some(s=>s.exact);
+ const segs=scores.filter((s,i)=>i===0||(s.score>=12&&(anyExact?(s.exact||s.score>=top*0.8):s.score>=top*0.45))).slice(0,5);
  const related=[...new Set(segs.flatMap(s=>RELATED[s.id]||[]))].filter(id=>!segs.some(s=>s.id===id)).slice(0,3);
  const catalog=q?CATALOG_INDEX.filter(c=>tokens.every(tk=>c.n.includes(sing(tk)))).slice(0,6):[];
  return {raw:String(raw||"").trim(),q,tokens,segs,related,catalog,free:!segs.length&&!!q};
@@ -1704,6 +1769,13 @@ function haversine(a,b,c,d){const R=6371000,toR=x=>x*Math.PI/180;const dLat=toR(
 async function httpJson(url,opt,signal){let res;try{res=await fetch(url,{...(opt||{}),signal})}catch(e){if(e.name==="AbortError")throw e;const er=new Error("Sem conexão com "+new URL(url).hostname);er.net=true;throw er}
  let data=null;try{data=await res.json()}catch(e){data=null}
  if(!res.ok){const er=new Error((data&&(data.message||data.error))||("HTTP "+res.status));er.status=res.status;throw er}return data}
+
+/* fetch com prazo: uma fonte lenta nunca mais trava a varredura inteira */
+async function httpJsonT(url,opt,signal,ms){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms||20000);
+ const relay=()=>c.abort();if(signal){if(signal.aborted)c.abort();else signal.addEventListener("abort",relay,{once:true})}
+ try{return await httpJson(url,opt,c.signal)}
+ catch(e){if(e.name==="AbortError"&&!(signal&&signal.aborted)){const er=new Error("demorou demais para responder");er.timeout=true;throw er}throw e}
+ finally{clearTimeout(t);if(signal)signal.removeEventListener("abort",relay)}}
 
 /* ---------- geocodificação (Geoapify) ---------- */
 async function geocode(place,signal){
@@ -1737,43 +1809,118 @@ const safeUrl=s=>{if(!s)return "";let v=String(s).trim();if(!/^https?:\/\//i.tes
 function normInsta(v){let s=String(v||"").trim();if(!s)return "";const m=s.match(/instagram\.com\/([A-Za-z0-9_.]+)/i);const h=m?m[1]:s.replace(/^@/,"");if(!/^[A-Za-z0-9_.]{2,30}$/.test(h)||["p","reel","explore"].includes(h.toLowerCase()))return "";return "https://www.instagram.com/"+h+"/"}
 
 /* ---------- FONTE: Geoapify (chave obrigatória — a mesma da Órbita) ---------- */
-const GEO_SAFE=new Set(["commercial","commercial.houseware_and_hardware","commercial.houseware_and_hardware.doityourself","commercial.houseware_and_hardware.hardware_and_tools","commercial.houseware_and_hardware.building_materials","commercial.houseware_and_hardware.building_materials.paint","commercial.houseware_and_hardware.building_materials.glaziery","commercial.houseware_and_hardware.building_materials.doors","commercial.houseware_and_hardware.building_materials.tiles","commercial.houseware_and_hardware.building_materials.windows","commercial.houseware_and_hardware.building_materials.flooring","commercial.elektronics","commercial.elektronics.computer","commercial.elektronics.mobile_phone","commercial.stationery","commercial.books","commercial.supermarket","commercial.discount_store","commercial.department_store","commercial.marketplace","commercial.furniture_and_interior","commercial.garden","commercial.garden.garden_centre","commercial.garden.agrarian","commercial.vehicle","commercial.gas","commercial.health_and_beauty","commercial.health_and_beauty.pharmacy","commercial.health_and_beauty.medical_supply","commercial.clothing","commercial.food_and_drink","service","service.vehicle.fuel","service.vehicle.repair","service.cleaning","office","rental","catering","healthcare"]);
-/* categorias que a própria Geoapify devolve por local (mais confiável que adivinhar por tags) */
-function segsFromCategories(cats){if(!cats||!cats.length)return [];const out=[];
- SEGMENTS.forEach(s=>{if(s.geo.some(sc=>cats.some(pc=>pc===sc||pc.startsWith(sc+".")||sc.startsWith(pc+"."))))out.push(s.id)});
+/* categorias que a Places API realmente aceita (documentação da Geoapify). Uma categoria
+   inexistente derruba a consulta inteira com erro 400 — por isso tudo passa por aqui antes. */
+const GEO_VALID=new Set(("commercial service office production rental catering healthcare commercial.agrarian commercial.chemist commercial.clothing commercial.convenience commercial.department_store commercial.discount_store commercial.elektronics commercial.energy commercial.food_and_drink commercial.furniture_and_interior commercial.furniture_and_interior.bathroom commercial.furniture_and_interior.carpet commercial.furniture_and_interior.kitchen commercial.furniture_and_interior.lighting commercial.garden commercial.gas commercial.health_and_beauty commercial.health_and_beauty.medical_supply commercial.health_and_beauty.pharmacy commercial.houseware_and_hardware commercial.houseware_and_hardware.building_materials commercial.houseware_and_hardware.building_materials.doors commercial.houseware_and_hardware.building_materials.flooring commercial.houseware_and_hardware.building_materials.glaziery commercial.houseware_and_hardware.building_materials.paint commercial.houseware_and_hardware.building_materials.tiles commercial.houseware_and_hardware.building_materials.windows commercial.houseware_and_hardware.doityourself commercial.houseware_and_hardware.hardware_and_tools commercial.houseware_and_hardware.swimming_pool commercial.marketplace commercial.stationery commercial.supermarket commercial.trade commercial.vehicle service.advertising service.blacksmith service.carpenter service.cleaning service.electrician service.key_cutter service.locksmith service.metal_construction service.vehicle.fuel service.vehicle.repair office.advertising_agency office.company office.energy_supplier office.it office.logistics office.security office.telecommunication production.factory").split(" "));
+const validCats=list=>[...new Set(list)].filter(c=>GEO_VALID.has(c));
+/* categorias que a Geoapify devolve para o local: só contam as "home" de cada segmento
+   (a categoria genérica "casa e utilidades" não prova que uma loja vende placa solar) */
+function segsFromCategories(cats){if(!cats||!cats.length)return [];
+ return SEGMENTS.filter(s=>s.home.some(h=>cats.some(pc=>pc===h||pc.startsWith(h+".")))).map(s=>s.id)}
+/* ---------- VARREDURA NO MODELO DA ÓRBITA ----------
+   · uma consulta por segmento, só com as categorias da Geoapify que são daquele nicho —
+     o que volta já sai marcado com o segmento (quem classificou foi a própria Geoapify);
+   · páginas de 40 fichas, com profundidade ajustável e "buscar mais";
+   · ficha sem etiquetas do OpenStreetMap → consulta os detalhes do local para achar o contato;
+   · nichos que a Geoapify não cataloga (energia solar, hidráulica, EPI...) são procurados pelo
+     NOME do estabelecimento e só entram se o nome confirmar o nicho. */
+const PAGE=40,MAX_JOBS=24,POOL=4;
+const NAME_CATS=["commercial","service","office","production"];
+function geoUrl(cats,center,radius,limit,name,offset){const u=new URL("https://api.geoapify.com/v2/places");u.searchParams.set("categories",cats.join(","));u.searchParams.set("filter","circle:"+center.lon+","+center.lat+","+Math.round(radius));u.searchParams.set("bias","proximity:"+center.lon+","+center.lat);u.searchParams.set("limit",String(limit));if(offset)u.searchParams.set("offset",String(offset));u.searchParams.set("lang","pt");if(name)u.searchParams.set("name",name);u.searchParams.set("apiKey",settings.geoKey);return u.href}
+/* site que é rede social ou WhatsApp não conta como site */
+function sortLinks(rec,list){list.map(x=>String(x||"").trim()).filter(Boolean).forEach(w=>{
+ if(/instagram\.com/i.test(w)){if(!rec.instagram)rec.instagram=normInsta(w)}
+ else if(/facebook\.com|fb\.com|fb\.me/i.test(w)){if(!rec.facebook)rec.facebook=safeUrl(w)}
+ else if(/wa\.me|whatsapp\.com/i.test(w)){const d=w.replace(/\D/g,"");if(!rec.whatsapp&&d.length>=10)rec.whatsapp=d}
+ else if(!rec.website)rec.website=safeUrl(w)})}
+function fromGeo(f,job){const p=f.properties||{},raw=(p.datasource&&p.datasource.raw)||{};if(!p.name||!p.place_id)return null;
+ const osmId=raw.osm_id&&raw.osm_type?"osm:"+raw.osm_type[0]+raw.osm_id:"geo:"+p.place_id;
+ const c=p.contact||{};
+ const rec=mkRecord({id:osmId,name:p.name,lat:p.lat,lon:p.lon,tags:raw,src:"geo",street:[p.street,p.housenumber].filter(Boolean).join(", ")||(p.address_line1&&p.address_line1!==p.name?p.address_line1:""),suburb:p.suburb||p.district||p.quarter||"",city:p.city||"",state:p.state_code||p.state||"",postcode:p.postcode||"",phone:c.phone||"",email:c.email||"",hours:p.opening_hours||""});
+ const web=rec.website;rec.website="";sortLinks(rec,[web,p.website]);
+ rec.placeId=p.place_id;rec.hasRaw=Object.keys(raw).length>2;
+ rec.geoSegs=segsFromCategories(p.categories);rec.catSegs=job&&job.seg?[job.seg]:[];return rec}
+function buildJobs(segIds,interp){const cat=[],scanCats=new Set(),name1=[],nameN=[],homeAll=new Set(),focused=segIds.length<=3;
+ if(interp.free&&interp.tokens.length){const t=interp.raw||interp.tokens.join(" ");
+  cat.push({key:"free",label:'nome "'+t+'"',cats:NAME_CATS,name:interp.tokens.join(" ")});
+  cat.push({key:"gfree",kind:"geocode",label:'endereços com "'+t+'"',text:t})}
+ segIds.forEach(id=>{const s=SEG[id];const home=validCats(s.home);home.forEach(c=>homeAll.add(c));
+  /* 1) categoria própria: o que volta já é do nicho (igual à Órbita) */
+  if(home.length)cat.push({key:"c:"+id,label:s.label,cats:home,seg:id});
+  validCats(s.scan).forEach(c=>scanCats.add(c));
+  /* 2) nome do estabelecimento: Places (filtro por nome) + geocodificador (busca livre por nome) */
+  /* busca focada (até 3 nichos): todos os termos de nome; varredura grande: só o principal */
+  s.nq.forEach((t,i)=>{if(!focused&&(home.length?i>0:i>1))return;
+   (i===0?name1:nameN).push({key:"n:"+id+":"+t,label:s.label+' (nome "'+t+'")',cats:NAME_CATS,name:t});
+   if(i<(focused?2:home.length?0:1))(i===0?name1:nameN).push({key:"g:"+id+":"+t,kind:"geocode",label:s.label+' (busca "'+t+'")',text:t})})});
+ /* 3) categorias onde o nicho aparece misturado: uma consulta só, e só fica quem o nome/etiqueta confirmar */
+ const scan=[...scanCats].filter(c=>!homeAll.has(c));
+ const scanJob=scan.length?[{key:"scan",label:"lojas e fornecedores gerais",cats:scan}]:[];
+ return [...cat,...name1,...scanJob,...nameN].slice(0,MAX_JOBS).map(j=>({...j,offset:0,done:false,n:0}))}
+/* geocodificador da Geoapify: acha estabelecimentos pelo nome (ex.: "energia solar"), dentro do raio */
+async function geocodePOI(j,center,radius,signal){const u=new URL("https://api.geoapify.com/v1/geocode/search");
+ u.searchParams.set("text",j.text);u.searchParams.set("type","amenity");u.searchParams.set("filter","circle:"+center.lon+","+center.lat+","+Math.round(radius));u.searchParams.set("bias","proximity:"+center.lon+","+center.lat);u.searchParams.set("limit","20");u.searchParams.set("lang","pt");u.searchParams.set("format","json");u.searchParams.set("apiKey",settings.geoKey);
+ const d=await httpJsonT(u.href,null,signal,20000);
+ return {features:((d&&d.results)||[]).filter(r=>r.name&&r.place_id&&r.result_type!=="street").map(r=>({properties:{...r,categories:r.category?[r.category]:[]}}))}}
+async function fetchPage(j,center,radius,signal){if(j.kind==="geocode"){j.done=true;return geocodePOI(j,center,radius,signal)}
+ return httpJsonT(geoUrl(j.cats,center,radius,PAGE,j.name,j.offset),null,signal,20000)}
+/* roda as consultas com no máximo 4 ao mesmo tempo, cada uma por `pages` páginas */
+async function runJobs(jobs,pages,center,radius,signal,onJob){const out=[];let fails=0,lastErr=null,idx=0;const open=jobs.filter(j=>!j.done);
+ const worker=async()=>{while(idx<open.length){const j=open[idx++];
+  try{for(let pg=0;pg<pages&&!j.done;pg++){const d=await fetchPage(j,center,radius,signal);const feats=(d&&d.features)||[];
+    feats.forEach(f=>{const r=fromGeo(f,j);if(r)out.push(r)});j.n+=feats.length;j.offset+=PAGE;if(feats.length<PAGE||j.kind==="geocode")j.done=true}}
+  catch(e){if(e.name==="AbortError"&&signal&&signal.aborted)throw e;if(e.status===401||e.status===403||e.status===429)throw e;fails++;lastErr=e;j.done=true}
+  onJob&&onJob(j)}};
+ await Promise.all(Array.from({length:Math.min(POOL,open.length)},worker));
+ if(open.length&&fails===open.length)throw lastErr;
  return out}
-async function geoapifyRun(segIds,interp,center,radius,signal){
- let cats=[...new Set(segIds.flatMap(id=>SEG[id].geo))];if(!cats.length)cats=["commercial","service"];
- const attempt=async(list)=>{const u=new URL("https://api.geoapify.com/v2/places");u.searchParams.set("categories",list.join(","));u.searchParams.set("filter","circle:"+center.lon+","+center.lat+","+Math.round(radius));u.searchParams.set("bias","proximity:"+center.lon+","+center.lat);u.searchParams.set("limit","400");u.searchParams.set("lang","pt");if(interp.free&&interp.tokens.length)u.searchParams.set("name",interp.tokens.join(" "));u.searchParams.set("apiKey",settings.geoKey);return httpJson(u.href,null,signal)};
- let d;try{d=await attempt(cats)}catch(e){if(e.status!==400)throw e;const safe=cats.filter(c=>GEO_SAFE.has(c));d=await attempt(safe.length?safe:["commercial","service"])}
- return (d.features||[]).map(f=>{const p=f.properties||{},raw=(p.datasource&&p.datasource.raw)||{};if(!p.name)return null;
-  const osmId=raw.osm_id&&raw.osm_type?"osm:"+raw.osm_type[0]+raw.osm_id:"geo:"+p.place_id;
-  const c=p.contact||{};
-  const rec=mkRecord({id:osmId,name:p.name,lat:p.lat,lon:p.lon,tags:raw,src:"geo",street:p.address_line1&&p.address_line1!==p.name?p.address_line1:[p.street,p.housenumber].filter(Boolean).join(", "),suburb:p.suburb||p.district||"",city:p.city||"",state:p.state_code||p.state||"",postcode:p.postcode||"",phone:c.phone||"",email:c.email||"",website:p.website||"",hours:p.opening_hours||""});
-  rec.geoSegs=segsFromCategories(p.categories);
-  return rec}).filter(Boolean);
-}
+/* detalhes do local (como a Órbita): só para fichas sem etiquetas e sem telefone */
+async function enrichDetails(list,signal,log){const need=list.filter(r=>r.placeId&&!r.hasRaw&&!r.phone&&!r.detailsTried).slice(0,40);if(!need.length)return;
+ log("det","Completando contatos de "+need.length+" fichas…");let got=0;
+ for(let i=0;i<need.length;i+=4){if(signal&&signal.aborted)return;
+  await Promise.allSettled(need.slice(i,i+4).map(async r=>{r.detailsTried=true;
+   const u=new URL("https://api.geoapify.com/v2/place-details");u.searchParams.set("id",r.placeId);u.searchParams.set("lang","pt");u.searchParams.set("apiKey",settings.geoKey);
+   const d=await httpJsonT(u.href,null,signal,15000);const f=((d&&d.features)||[]).find(x=>x.properties&&x.properties.feature_type==="details");if(!f)return;
+   const p=f.properties,raw=(p.datasource&&p.datasource.raw)||{},c=p.contact||{};const t=mkRecord({id:r.id,name:r.name,lat:r.lat,lon:r.lon,tags:raw,src:"geo"});
+   const before=contactScore(r);
+   r.phone=r.phone||c.phone||t.phone;r.email=r.email||c.email||t.email;r.whatsapp=r.whatsapp||t.whatsapp;r.hours=r.hours||p.opening_hours||t.hours;r.cnpj=r.cnpj||t.cnpj;
+   if(!r.instagram)r.instagram=t.instagram;sortLinks(r,[t.website,p.website]);r.tags={...t.tags,...r.tags};
+   if(contactScore(r)>before)got++}))}
+ log("det","Contatos completados: "+got+" de "+need.length,true)}
 
 /* ---------- classificação, deduplicação e pontuação ---------- */
 const SEG_TESTS=SEGMENTS.map(s=>({id:s.id,groups:s.osm.map(parseSel),kw:kwRegex(s.kw)}));
 function parseSel(sel){const out=[];sel.replace(/\["([^"]+)"(?:(=|~)"([^"]*)"(,i)?)?\]/g,(m,k,op,v,fl)=>{out.push({k,op,v,rx:op==="~"?new RegExp(v,fl?"i":""):null})});return out}
 function tagMatch(tags,groups){return groups.some(g=>g.every(c=>{const v=tags[c.k];if(v==null)return false;if(!c.op)return true;if(c.op==="=")return String(v)===c.v;return c.rx.test(String(v))}))}
-function classify(r){const byTag=[...(r.geoSegs||[])],byName=[];const tg={...(r.tags||{}),name:r.name};SEG_TESTS.forEach(s=>{if(!byTag.includes(s.id)&&tagMatch(tg,s.groups))byTag.push(s.id);else if(s.kw.test(r.name))byName.push(s.id)});
- r.segTag=byTag;r.segs=[...new Set([...byTag,...byName])];return r}
+const NEG_RX=Object.fromEntries(SEGMENTS.filter(s=>s.neg.length).map(s=>[s.id,kwRegex(s.neg)]));
+/* um local só entra num segmento com prova: categoria "home" da Geoapify, etiqueta do
+   OpenStreetMap ou o nicho escrito no nome. Nada de "talvez seja" por categoria genérica. */
+function classify(r){const byTag=[...(r.geoSegs||[])],byName=[],blocked=[];const tg={...(r.tags||{}),name:r.name};
+ const label=r.name+(r.typeLabel?" · "+r.typeLabel:"");
+ /* veio da consulta de categoria do nicho X (modelo Órbita): já é do nicho, salvo palavra de exclusão */
+ (r.catSegs||[]).forEach(id=>{if(NEG_RX[id]&&NEG_RX[id].test(r.name))blocked.push(id);else if(!byTag.includes(id))byTag.push(id)});
+ SEG_TESTS.forEach(s=>{if(!byTag.includes(s.id)&&tagMatch(tg,s.groups))byTag.push(s.id);
+  if(s.kw.test(label)){if(NEG_RX[s.id]&&NEG_RX[s.id].test(r.name))blocked.push(s.id);else if(!byName.includes(s.id))byName.push(s.id)}});
+ r.segTag=[...new Set([...byTag,...byName])];r.segs=r.segTag;r.blocked=blocked;
+ return r}
 function merge(list){const byId=new Map();
  list.forEach(r=>{if(!r)return;const ex=byId.get(r.id);if(ex)absorb(ex,r);else byId.set(r.id,r)});
  const arr=[...byId.values()];const out=[];
  arr.forEach(r=>{const key=norm(r.name).split(" ").slice(0,3).join(" ");
-  const dup=out.find(o=>(norm(o.name).split(" ").slice(0,3).join(" ")===key||norm(o.name)===norm(r.name))&&haversine(o.lat,o.lon,r.lat,r.lon)<180);
+  const pd=phoneDigits(r.phone);
+  const dup=out.find(o=>{const d=haversine(o.lat,o.lon,r.lat,r.lon);
+   if((norm(o.name).split(" ").slice(0,3).join(" ")===key||norm(o.name)===norm(r.name))&&d<180)return true;
+   return pd.length>=10&&phoneDigits(o.phone)===pd&&d<300});
   if(dup)absorb(dup,r);else out.push(r)});
  return out}
-function absorb(a,b){["street","suburb","city","state","postcode","phone","whatsapp","email","website","instagram","facebook","hours","cnpj","gmaps","typeLabel"].forEach(k=>{if(!a[k]&&b[k])a[k]=b[k]});if(b.rating&&!a.rating){a.rating=b.rating;a.ratingCount=b.ratingCount}a.tags={...b.tags,...a.tags};a.sources=[...new Set([...a.sources,...b.sources])];a.geoSegs=[...new Set([...(a.geoSegs||[]),...(b.geoSegs||[])])]}
+function absorb(a,b){["street","suburb","city","state","postcode","phone","whatsapp","email","website","instagram","facebook","hours","cnpj","gmaps","typeLabel"].forEach(k=>{if(!a[k]&&b[k])a[k]=b[k]});if(b.rating&&!a.rating){a.rating=b.rating;a.ratingCount=b.ratingCount}a.tags={...b.tags,...a.tags};a.sources=[...new Set([...a.sources,...b.sources])];
+ a.geoSegs=[...new Set([...(a.geoSegs||[]),...(b.geoSegs||[])])];a.catSegs=[...new Set([...(a.catSegs||[]),...(b.catSegs||[])])];if(!a.placeId&&b.placeId){a.placeId=b.placeId;a.hasRaw=b.hasRaw}}
 function contactScore(r){let s=0;if(r.phone)s+=2;if(r.whatsapp||isMobile(r.phone))s+=1;if(r.email)s+=1;if(r.website||r.instagram)s+=1;return s}/* 0..5 */
 function scoreRecord(r,interp,center,wanted){
  const nameN=norm(r.name);let s=0;
  const hitName=interp.tokens.some(t=>t.length>=3&&nameN.includes(sing(t)));if(hitName)s+=34;
  const tagHit=r.segTag.some(x=>wanted.includes(x)),anyHit=r.segs.some(x=>wanted.includes(x));
- if(tagHit)s+=30;else if(anyHit)s+=22;
+ if(tagHit)s+=30;else if(anyHit)s+=14;
  if(r.segs.length&&!anyHit&&!hitName)s-=18;
  s+=contactScore(r)*4+(r.street?3:0)+(r.hours?2:0);
  if(r.rating)s+=Math.min(6,(r.rating-3)*3)+Math.min(4,Math.log10((r.ratingCount||1))*2);
@@ -1791,21 +1938,37 @@ function isMobile(p){const d=phoneDigits(p);return d.length===11&&d[2]==="9"}
 function waNumber(r){const w=phoneDigits(r.whatsapp);if(w.length>=10)return "55"+w;const d=phoneDigits(r.phone);if(d.length===10||d.length===11)return "55"+d;return ""}
 function fmtPhone(p){const d=phoneDigits(p);if(d.length===11)return "("+d.slice(0,2)+") "+d.slice(2,7)+"-"+d.slice(7);if(d.length===10)return "("+d.slice(0,2)+") "+d.slice(2,6)+"-"+d.slice(6);return String(p||"")}
 
-/* ---------- ORQUESTRAÇÃO DA VARREDURA (fonte única: Geoapify) ---------- */
+/* ---------- ORQUESTRAÇÃO DA VARREDURA (Geoapify, modelo Órbita) ---------- */
+function finalize(pool,interp,center,radius,wanted){
+ const merged=merge(pool).map(classify).map(r=>scoreRecord(r,interp,center,wanted)).filter(r=>r.distance<=radius*1.35);
+ /* entra: quem é do segmento pedido; ou, se ninguém classificou o local, quem tem o termo digitado no nome.
+    Uma gráfica chamada "Placas & Banners" não aparece numa busca por "placa solar". */
+ const tokenHit=r=>interp.tokens.some(t=>t.length>=4&&norm(r.name).includes(sing(t)));
+ const inWanted=r=>r.segs.some(x=>wanted.includes(x));
+ const rel=merged.filter(r=>{if(!wanted.length)return interp.free?tokenHit(r):true;if(interp.free)return tokenHit(r)||inWanted(r);return inWanted(r)||(!r.segs.length&&!r.blocked.length&&tokenHit(r))});
+ return rel}
+const errMsg=e=>e.status===401||e.status===403?"chave recusada":e.status===429?"limite de consultas da chave atingido":e.message;
+async function scanCore({interp,wanted,center,radius,signal,log,jobs,pool,pages}){
+ const status={geo:{state:"run",n:0}};const total=jobs.filter(j=>!j.done).length;let doneN=0;
+ log("geo","Consultando a Geoapify: "+total+" consulta(s) por segmento…");
+ let got=[];
+ try{got=await runJobs(jobs,pages,center,radius,signal,j=>{doneN++;log("geo","Geoapify: "+doneN+"/"+total+" · "+j.label+" ("+j.n+")")})}
+ catch(e){if(e.name==="AbortError"&&signal&&signal.aborted)throw e;status.geo.state="err";status.geo.err=errMsg(e);log("geo","Geoapify: "+status.geo.err,true,"err");return {results:[],status,pool,jobs}}
+ if(signal&&signal.aborted){const e=new Error("abort");e.name="AbortError";throw e}
+ pool=pool.concat(got);status.geo.state="ok";status.geo.n=pool.length;log("geo","Geoapify: "+pool.length+" fichas lidas",true);
+ log("merge","Classificando por segmento…");
+ let rel=finalize(pool,interp,center,radius,wanted);log("merge",rel.length+" fornecedores do(s) segmento(s)",true);
+ await enrichDetails(rel,signal,log);
+ rel=rel.map(r=>scoreRecord(r,interp,center,wanted));rel.sort((a,b)=>b.score-a.score);
+ return {results:rel,status,pool,jobs}}
 async function runScan({interp,segIds,center,radius,signal,log}){
- const wanted=segIds.slice();const status={geo:{state:"idle",n:0}};
- if(!settings.geoKey){status.geo.state="err";status.geo.err="sem chave";log("geo","Cole sua chave da Geoapify em Ajustes para buscar.",true,"err");return {results:[],status}}
- status.geo.state="run";log("geo","Consultando Geoapify…");
- let all=[];
- try{all=await geoapifyRun(wanted,interp,center,radius,signal);status.geo.n=all.length;status.geo.state="ok";log("geo","Geoapify: "+all.length+" locais",true)}
- catch(e){if(e.name==="AbortError")throw e;status.geo.state="err";status.geo.err=e.status===401||e.status===403?"chave recusada":e.message;log("geo","Geoapify: "+status.geo.err,true,"err");return {results:[],status}}
- log("merge","Classificando e pontuando…");
- const merged=merge(all).map(classify).map(r=>scoreRecord(r,interp,center,wanted)).filter(r=>r.distance<=radius*1.35);
- /* numa busca por segmentos, descarta o que não tem relação nenhuma */
- const rel=merged.filter(r=>!wanted.length||r.segs.some(x=>wanted.includes(x))||interp.tokens.some(t=>t.length>=3&&norm(r.name).includes(sing(t))));
- rel.sort((a,b)=>b.score-a.score);
- return {results:rel,status};
-}
+ const wanted=segIds.slice();
+ if(!settings.geoKey){const status={geo:{state:"err",n:0,err:"sem chave"}};log("geo","Cole sua chave da Geoapify em Ajustes para buscar.",true,"err");return {results:[],status,pool:[],jobs:[]}}
+ const jobs=buildJobs(wanted,interp);
+ return scanCore({interp,wanted,center,radius,signal,log,jobs,pool:[],pages:Math.min(3,Math.max(1,+settings.depth||1))})}
+/* "Buscar mais fichas": próxima página de cada consulta que ainda tinha resultado */
+async function scanMore({interp,segIds,center,radius,signal,log,jobs,pool}){
+ return scanCore({interp,wanted:segIds.slice(),center,radius,signal,log,jobs,pool,pages:1})}
 
 /* ============================================================
    NÚCLEO: armazenamento, estado, utilidades
@@ -1813,7 +1976,7 @@ async function runScan({interp,segIds,center,radius,signal,log}){
 const store={get(k,d){try{const v=localStorage.getItem("suprimo:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
  set(k,v){try{localStorage.setItem("suprimo:"+k,JSON.stringify(v));return true}catch(e){toast("Não foi possível salvar neste navegador (armazenamento cheio ou bloqueado). Exporte um backup em Ajustes.");return false}}};
 const DEFAULT_TEMPLATE="Olá, {fornecedor}! Tudo bem?\n\nAqui é {solicitante}, da {empresa}. Estamos cotando os itens abaixo e gostaríamos de receber a sua proposta:\n\n{itens}\n\nLocal de entrega: {entrega}\nPrazo para envio da proposta: {prazo}\n\nPor gentileza, informe preço unitário, frete, prazo de entrega, condição de pagamento e validade da proposta.\n\nReferência: {codigo}\nObrigado(a)!";
-let settings=Object.assign({company:"",cnpj:"",requester:"",phone:"",email:"",delivery:"",geoKey:"",radius:8000,location:"",template:DEFAULT_TEMPLATE,theme:""},store.get("settings",{}));
+let settings=Object.assign({company:"",cnpj:"",requester:"",phone:"",email:"",delivery:"",geoKey:"",depth:1,radius:8000,location:"",template:DEFAULT_TEMPLATE,theme:""},store.get("settings",{}));
 let suppliers=store.get("suppliers",[]);
 let processes=store.get("processes",[]);
 let activeId=store.get("active",null);
@@ -1935,7 +2098,7 @@ async function startSearch({query,segIds,center}){
  if(!locText&&!center&&!search.gpsFixed){toast("Informe a cidade ou use sua localização.");$("#loc")&&$("#loc").focus();return}
  if(!settings.geoKey){toast("Cole sua chave da Geoapify em Ajustes antes de buscar.",{label:"Abrir Ajustes",run:()=>go("ajustes")});return}
  const interp=interpret(query);
- search.query=query;search.interp=interp;search.off=new Set();
+ search.query=query;search.interp=interp;/* nichos vizinhos aparecem como sugestão desligada: um clique inclui */search.off=new Set(segIds?[]:interp.related);
  search.segIds=segIds?segIds.slice():[...interp.segs.map(s=>s.id),...interp.related];
  search.primary=segIds?segIds.slice():interp.segs.map(s=>s.id);
  search.facet={seg:null,phone:false,wa:false,email:false,site:false,notsaved:false};search.showN=30;search.results=[];search.status=null;
@@ -1950,27 +2113,36 @@ async function runSearch(center){
   if(center)search.center=center;
   else if(!search.gpsFixed||!search.center){log("geo0","Localizando "+search.locLabel+"…");search.center=await geocode(search.locLabel,ctrl.signal);log("geo0","Centro da busca: "+search.center.label,true)}
   const active=search.segIds.filter(id=>!search.off.has(id));
-  const {results,status}=await runScan({interp:search.interp,segIds:active,center:search.center,radius:search.radius,signal:ctrl.signal,log});
+  const {results,status,pool,jobs}=await runScan({interp:search.interp,segIds:active,center:search.center,radius:search.radius,signal:ctrl.signal,log});
   if(ctrl.signal.aborted)return;
-  search.results=results;search.status=status;search.scanning=false;
+  search.results=results;search.status=status;search.pool=pool;search.jobs=jobs;search.scanning=false;
   if(!results.length&&status.geo.state==="err")search.error=status.geo.err==="sem chave"?"Cole sua chave da Geoapify em Ajustes para buscar.":"A Geoapify não respondeu agora ("+status.geo.err+"). Verifique a conexão e tente de novo.";else search.error=null;
   renderResults();
  }catch(e){if(e.name==="AbortError")return;search.scanning=false;search.error=e.message;renderResults()}
 }
 function drawLog(){const l=$("#scanlog");if(!l)return;l.innerHTML=search.log.map(x=>'<div class="'+(x.kind==="err"?"err":x.done?"done":"")+'">'+(x.kind==="err"?ico("alert",14):x.done?ico("check",14):'<span class="dot run"></span>')+'<span>'+esc(x.text)+'</span></div>').join("");l.scrollTop=l.scrollHeight;const s=$("#u-src");if(s)s.innerHTML=srcPills()}
-function srcPills(){const st=search.status||{};const run=search.scanning;const s=st.geo||{};const off=!settings.geoKey;const state=off?"err":run?"run":s.state==="ok"?"on":s.state==="err"?"err":"";return '<div class="srcpill" title="'+esc(s.err||"")+'"><span class="k"><i class="dot '+state+'"></i>Geoapify</span><b>'+(off?'<a href="#ajustes" class="soft" data-set>colar chave</a>':run?"…":s.state==="err"?"falhou":(s.n||0))+'</b></div>'}
+function srcPills(){const st=search.status||{};const run=search.scanning;const s=st.geo||{};const off=!settings.geoKey;const state=off?"err":run?"run":s.state==="ok"?"on":s.state==="err"?"err":"";
+ return '<div class="srcpill" title="'+esc(s.err||"")+'"><span class="k"><i class="dot '+state+'"></i>Geoapify</span><b>'+(off?'<a href="#ajustes" class="soft" data-set>colar chave</a>':run?"…":s.state==="err"?"falhou":(s.n||0)+" fichas")+'</b></div>'}
 
 function filtered(){const f=search.facet;return search.results.filter(r=>(!f.seg||r.segs.includes(f.seg))&&(!f.phone||r.phone)&&(!f.wa||waNumber(r))&&(!f.email||r.email)&&(!f.site||r.website||r.instagram)&&(!f.notsaved||!supById(r.id)))
  .sort((a,b)=>search.sort==="dist"?a.distance-b.distance:search.sort==="contact"?contactScore(b)-contactScore(a)||b.score-a.score:search.sort==="name"?a.name.localeCompare(b.name,"pt-BR"):b.score-a.score)}
+/* "Buscar mais fichas" (como na Órbita): próxima página de 40 em cada consulta que ainda tinha resultado */
+function moreBtn(){const open=(search.jobs||[]).filter(j=>!j.done).length;return open&&!search.scanning?'<button class="btn" type="button" id="moreScan">'+ico("radar",16)+'Buscar mais fichas ('+open+' consulta'+(open>1?"s":"")+')</button>':""}
+function bindMore(){const b=$("#moreScan");if(!b)return;b.onclick=async()=>{if(search.ctrl)search.ctrl.abort();const ctrl=new AbortController();search.ctrl=ctrl;search.scanning=true;search.log=[];renderResultsList();
+ const log=(src,text,done,kind)=>{const ex=search.log.find(l=>l.src===src&&!l.done);if(ex){ex.text=text;ex.done=!!done;ex.kind=kind}else search.log.push({src,text,done:!!done,kind});drawLog()};
+ const before=search.results.length;
+ try{const active=search.segIds.filter(id=>!search.off.has(id));const {results,status,pool,jobs}=await scanMore({interp:search.interp,segIds:active,center:search.center,radius:search.radius,signal:ctrl.signal,log,jobs:search.jobs,pool:search.pool||[]});
+  if(ctrl.signal.aborted)return;search.scanning=false;search.status=status;search.pool=pool;search.jobs=jobs;
+  if(status.geo.state==="err"){toast("A Geoapify não respondeu: "+status.geo.err)}else{search.results=results;toast((results.length-before>0?"+"+(results.length-before):"Nenhum")+" fornecedor novo.")}
+  renderResults()}catch(e){if(e.name==="AbortError")return;search.scanning=false;toast(e.message);renderResults()}}}
 function renderResults(){const el=$("#v-busca");const it=search.interp||{segs:[],catalog:[],tokens:[]};
  const chips=search.segIds.map(id=>{const rel=!search.primary.includes(id);const off=search.off.has(id);return '<button class="chip'+(off?" off":" on")+(rel?" rel":"")+'" type="button" data-tseg="'+id+'" title="'+(off?"Incluir":"Remover")+' este segmento" style="--h:'+SEG[id].hue+'">'+ico(SEG[id].icon,14)+esc(SEG[id].label)+(off?"":ico("x",12))+'</button>'}).join("");
  const addOpts=SEGMENTS.filter(s=>!search.segIds.includes(s.id)).map(s=>'<option value="'+s.id+'">'+esc(s.label)+'</option>').join("");
  const understood=it.free?'Não reconheci <b>"'+esc(search.query)+'"</b> no dicionário, então vou buscar pelo nome dos estabelecimentos. Você também pode escolher os segmentos:':search.segIds.length?(search.query?'Entendi <b>"'+esc(search.query)+'"</b> e vou procurar em:':"Segmentos:"):"";
- const gmapsUrl="https://www.google.com/maps/search/"+encodeURIComponent((search.query||"")+" "+(search.center?search.center.label:search.locLabel))+(search.center?"/@"+search.center.lat+","+search.center.lon+",13z":"");
  el.innerHTML='<div class="wrap"><div class="rs-top"><div class="rs-top-in"><button class="iconbtn back" type="button" id="back" title="Voltar ao início" aria-label="Voltar ao início">'+ico("arrowleft",18)+'</button><div style="flex:1;min-width:0">'+sboxHTML(true)+'</div></div></div>'+
  '<div class="card understand"><div class="u-l"><div class="u-t">'+ico("sparkles",15)+'<span>'+understood+'</span></div><div class="u-chips">'+chips+'<select class="sel u-add" id="addSeg" aria-label="Adicionar segmento"><option value="">Adicionar segmento</option>'+addOpts+'</select></div>'+
  (it.catalog&&it.catalog.length?'<div class="u-cat">'+ico("package",14)+'<span>Itens do catálogo:</span>'+it.catalog.slice(0,4).map((c,i)=>'<button class="chip" type="button" data-additem="'+i+'" title="Adicionar à cotação ativa">'+ico("plus",12)+esc(c.d)+'</button>').join("")+'</div>':"")+
- '<div class="u-cat">'+ico("external",13)+'<a href="'+esc(gmapsUrl)+'" target="_blank" rel="noopener" style="text-decoration:underline">Conferir esta busca também no Google Maps</a></div></div><div class="u-src" id="u-src">'+srcPills()+'</div></div>'+
+ '</div><div class="u-src" id="u-src">'+srcPills()+'</div></div>'+
  '<div class="rs-grid'+(search.showMap?" showmap":"")+'" id="rsgrid"><aside class="card facets'+(search.showFacets?" open":"")+'" id="facets"></aside><section id="rcol"></section><div class="card mapbox"><div id="map"></div><div class="map-legend" id="mlegend"></div></div></div></div>';
  bindSbox();
  $("#back").onclick=()=>{if(search.ctrl)search.ctrl.abort();search.mode="home";search.scanning=false;renderHome()};
@@ -1997,10 +2169,10 @@ function renderResultsList(){const col=$("#rcol");if(!col)return;
  if(search.error){col.innerHTML='<div class="empty">'+ico("alert",30)+'<b>Não foi possível concluir a varredura</b>'+esc(search.error)+'<div class="btns"><button class="btn pri" id="retry" type="button">'+ico("radar",16)+'Tentar de novo</button></div></div>';$("#retry").onclick=()=>runSearch(search.center);drawMarkers([]);return}
  const list=filtered(),shown=list.slice(0,search.showN);
  const head='<div class="list-h"><div><h3>'+list.length+' fornecedor'+(list.length===1?"":"es")+' encontrado'+(list.length===1?"":"s")+'</h3><span class="muted">'+(search.center?esc(search.center.label)+" · raio de "+km(search.radius):"")+'</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn sm seg-toggle" type="button" id="tFacets">'+ico("filter",15)+'Filtros</button><button class="btn sm seg-toggle" type="button" id="tMap">'+ico("map",15)+(search.showMap?"Ocultar mapa":"Mapa")+'</button><button class="btn sm" type="button" id="expRes"'+(list.length?"":" disabled")+'>'+ico("download",15)+'CSV</button><button class="btn sm" type="button" id="saveAll"'+(list.length?"":" disabled")+' title="Salvar todos os resultados filtrados na base">'+ico("bookmark",15)+'Salvar filtrados</button></div></div>';
- if(!list.length){const wider=RADII.find(r=>r>search.radius);col.innerHTML=head+'<div class="empty">'+ico("radar",30)+'<b>Nenhum fornecedor mapeado com esses critérios</b>A cobertura varia por bairro. Amplie o raio ou inclua segmentos vizinhos.<div class="btns">'+(wider?'<button class="btn pri" type="button" id="wider">'+ico("radar",16)+'Ampliar para '+km(wider)+'</button>':"")+'<button class="btn" type="button" id="addAll">'+ico("layersicon",16)+'Incluir segmentos vizinhos</button></div></div>';
-  bindListHead();if($("#wider"))$("#wider").onclick=()=>{search.radius=wider;renderResults();runSearch(search.center)};$("#addAll").onclick=()=>{const extra=[...new Set(search.segIds.flatMap(id=>RELATED[id]||[]))].filter(x=>!search.segIds.includes(x));if(!extra.length)extra.push("distribuidoras","construcao");extra.forEach(x=>{if(!search.segIds.includes(x))search.segIds.push(x)});renderResults();runSearch(search.center)};drawMarkers([]);return}
- col.innerHTML=head+'<div class="rlist">'+shown.map(cardHTML).join("")+'</div>'+(list.length>shown.length?'<button class="btn more" type="button" id="more">Mostrar mais '+Math.min(30,list.length-shown.length)+' de '+(list.length-shown.length)+' restantes</button>':"");
- bindListHead();if($("#more"))$("#more").onclick=()=>{search.showN+=30;renderResultsList()};
+ if(!list.length){const wider=RADII.find(r=>r>search.radius);col.innerHTML=head+'<div class="empty">'+ico("radar",30)+'<b>Nenhum fornecedor mapeado com esses critérios</b>A Geoapify usa o OpenStreetMap e a cobertura varia por bairro. Amplie o raio, busque mais fichas ou inclua segmentos vizinhos.<div class="btns">'+(moreBtn())+(wider?'<button class="btn pri" type="button" id="wider">'+ico("radar",16)+'Ampliar para '+km(wider)+'</button>':"")+'<button class="btn" type="button" id="addAll">'+ico("layersicon",16)+'Incluir segmentos vizinhos</button></div></div>';
+  bindListHead();bindMore();if($("#wider"))$("#wider").onclick=()=>{search.radius=wider;renderResults();runSearch(search.center)};$("#addAll").onclick=()=>{const extra=[...new Set(search.segIds.flatMap(id=>RELATED[id]||[]))].filter(x=>!search.segIds.includes(x));if(!extra.length)extra.push("distribuidoras","construcao");extra.forEach(x=>{if(!search.segIds.includes(x))search.segIds.push(x)});renderResults();runSearch(search.center)};drawMarkers([]);return}
+ col.innerHTML=head+'<div class="rlist">'+shown.map(cardHTML).join("")+'</div>'+(list.length>shown.length?'<button class="btn more" type="button" id="more">Mostrar mais '+Math.min(30,list.length-shown.length)+' de '+(list.length-shown.length)+' restantes</button>':'')+'<div class="morescan">'+moreBtn()+'</div>';
+ bindListHead();if($("#more"))$("#more").onclick=()=>{search.showN+=30;renderResultsList()};bindMore();
  col.querySelector(".rlist").addEventListener("click",onCardClick);
  col.querySelectorAll(".rcard").forEach(c=>{c.addEventListener("mouseenter",()=>hlMarker(c.dataset.id,true));c.addEventListener("mouseleave",()=>hlMarker(c.dataset.id,false))});
  drawMarkers(list.slice(0,400));
@@ -2022,7 +2194,7 @@ function cardHTML(r){const seg=SEG[r.primary]||SEG.distribuidoras;const saved=!!
  (r.email?'<a class="cbtn" href="mailto:'+esc(r.email)+'">'+ico("mail",14)+'<span>'+esc(r.email)+'</span></a>':'')+
  (r.website?'<a class="cbtn" href="'+esc(r.website)+'" target="_blank" rel="noopener">'+ico("globe",14)+'<span>Site</span></a>':'')+
  (r.instagram?'<a class="cbtn" href="'+esc(r.instagram)+'" target="_blank" rel="noopener">'+ico("insta",14)+'<span>Instagram</span></a>':'<a class="cbtn dim" href="https://www.google.com/search?q='+encodeURIComponent(r.name+" "+(r.city||(search.center&&search.center.label)||"")+" telefone instagram")+'" target="_blank" rel="noopener" title="Pesquisar contatos na web">'+ico("search",14)+'<span>Achar contatos</span></a>')+
- '<a class="cbtn" href="'+esc(gm)+'" target="_blank" rel="noopener">'+ico("map",14)+'<span>Rota</span></a></div></div>'+
+ '<a class="cbtn" href="'+esc(gm)+'" target="_blank" rel="noopener">'+ico("pin",14)+'<span>Ver no Maps</span></a></div></div>'+
  '<div class="rside"><div class="fit '+r.fit+'" title="Aderência à busca: '+r.score+'/100"><span>'+(r.fit==="alta"?"Alta aderência":r.fit==="boa"?"Boa aderência":"Possível")+'</span><span class="fitbar"><i style="width:'+r.score+'%"></i></span></div>'+
  '<div class="dist">'+ico("pin",12)+km(r.distance)+'</div><div style="display:flex;gap:8px;align-items:center"><span class="cq" title="Contatos disponíveis: '+cq+'/5">'+[0,1,2,3,4].map(i=>'<i class="'+(i<cq?"on":"")+'"></i>').join("")+'</span></div>'+
  '<div class="acts"><button class="btn sm pri" type="button" data-act="invite"'+(invited?" disabled":"")+'>'+ico(invited?"check":"send",14)+(invited?"Convidado":"Pedir cotação")+'</button>'+(saved?'':'<button class="btn sm" type="button" data-act="save">'+ico("bookmark",14)+'Salvar</button>')+'</div></div></article>'}
@@ -2033,7 +2205,10 @@ function onCardClick(e){const b=e.target.closest("[data-act]");const card=e.targ
 /* ---------- MAPA (Leaflet) ---------- */
 let map=null,markers=new Map(),radiusCircle=null,centerMk=null;window.mapTiles=null;
 function setTiles(){if(!map)return;const dark=document.documentElement.dataset.theme==="dark";if(window.mapTiles)map.removeLayer(window.mapTiles);
- window.mapTiles=L.tileLayer("https://{s}.basemaps.cartocdn.com/"+(dark?"dark_all":"rastertiles/voyager")+"/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'}).addTo(map)}
+ /* mapas da Geoapify (a mesma chave da busca); os da CARTO passaram a exigir chave própria */
+ const osm='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+ if(settings.geoKey)window.mapTiles=L.tileLayer("https://maps.geoapify.com/v1/tile/"+(dark?"dark-matter":"positron")+"/{z}/{x}/{y}{r}.png?apiKey="+encodeURIComponent(settings.geoKey),{maxZoom:20,attribution:'Geoapify | &copy; OpenMapTiles '+osm}).addTo(map);
+ else window.mapTiles=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:osm}).addTo(map)}
 function initMap(){const el=$("#map");if(!el||typeof L==="undefined")return;if(map){map.remove();map=null;markers.clear()}
  map=L.map(el,{zoomControl:true,attributionControl:true,scrollWheelZoom:true}).setView(search.center?[search.center.lat,search.center.lon]:[-3.73,-38.52],12);setTiles();
  map.on("click",async e=>{if(search.scanning)return;const ok=await confirmBox("Varrer a partir deste ponto?","O centro da busca passa a ser o ponto clicado no mapa, mantendo o mesmo raio e segmentos.","Varrer aqui");if(!ok)return;const lbl=await reverseGeocode(e.latlng.lat,e.latlng.lng);search.center={lat:e.latlng.lat,lon:e.latlng.lng,label:lbl||"Ponto no mapa"};search.locLabel=search.center.label;search.gpsFixed=true;renderResults();runSearch(search.center)});
@@ -2284,14 +2459,16 @@ function renderAjustes(){const el=$("#v-ajustes");const S=settings;
  const f=(k,l,ph,type,hint)=>'<div class="field"><label class="lbl" for="st-'+k+'">'+l+'</label><input class="inp" id="st-'+k+'" data-st="'+k+'" type="'+(type||"text")+'" placeholder="'+esc(ph||"")+'" value="'+esc(S[k]||"")+'">'+(hint?'<div class="hint">'+hint+'</div>':"")+'</div>';
  el.innerHTML='<div class="page-h"><div><div class="eyebrow">Configuração</div><h1>Ajustes</h1><p>Dados da empresa para as mensagens, fontes de busca e backup.</p></div></div><div class="setgrid">'+
  '<div class="card setcard"><h3>'+ico("building",17)+'Empresa solicitante</h3><p>Aparece nas mensagens de cotação e no mapa comparativo impresso.</p>'+f("company","Nome da empresa","Ex.: Construtora Exemplo Ltda")+'<div class="row2">'+f("cnpj","CNPJ","00.000.000/0000-00")+f("requester","Solicitante / comprador","Seu nome")+'</div><div class="row2">'+f("phone","Telefone de compras","(85) 0000-0000","tel")+f("email","E-mail de compras","compras@empresa.com","email")+'</div>'+f("delivery","Endereço de entrega padrão","Rua, nº, bairro, cidade")+'</div>'+
- '<div class="card setcard"><h3>'+ico("radar",17)+'Fonte da varredura</h3><p>O Suprimo usa a Geoapify para localizar endereços e fornecedores. A chave fica só neste navegador.</p>'+
- '<div class="srcrow"><span class="segico" style="--h:200">'+ico("globe",17)+'</span><div style="flex:1"><b>Geoapify</b> '+(S.geoKey?'<span class="badge ok">ativo</span>':'<span class="badge warn">obrigatória</span>')+'<p>A mesma chave usada na Órbita. Tem um plano gratuito mensal generoso. <a href="https://myprojects.geoapify.com/" target="_blank" rel="noopener" style="text-decoration:underline">Obter chave gratuita</a></p><div class="keyline"><input class="inp mono" id="st-geoKey" data-st="geoKey" type="password" placeholder="Chave Geoapify" value="'+esc(S.geoKey)+'" autocomplete="off"><button class="btn" type="button" id="testGeo">Testar</button></div></div></div></div>'+
+ '<div class="card setcard"><h3>'+ico("radar",17)+'Fonte da varredura</h3><p>Igual à Órbita: a Geoapify localiza o endereço, varre cada segmento pelas categorias dele e desenha o mapa. O Google Maps fica só no botão "Ver no Maps" de cada empresa. A chave fica só neste navegador.</p>'+
+ '<div class="srcrow"><span class="segico" style="--h:200">'+ico("globe",17)+'</span><div style="flex:1"><b>Geoapify</b> '+(S.geoKey?'<span class="badge ok">ativo</span>':'<span class="badge warn">obrigatória</span>')+'<p>A mesma chave usada na Órbita. Tem um plano gratuito mensal generoso. <a href="https://myprojects.geoapify.com/" target="_blank" rel="noopener" style="text-decoration:underline">Obter chave gratuita</a></p><div class="keyline"><input class="inp mono" id="st-geoKey" data-st="geoKey" type="password" placeholder="Chave Geoapify" value="'+esc(S.geoKey)+'" autocomplete="off"><button class="btn" type="button" id="testGeo">Testar</button></div></div></div>'+
+ '<div class="srcrow"><span class="segico" style="--h:35">'+ico("layers",17)+'</span><div style="flex:1"><b>Profundidade da varredura</b><p>Fichas lidas por segmento em cada busca. Mais fichas encontram mais fornecedores e gastam mais cota da chave. Depois da busca, "Buscar mais fichas" lê a próxima página.</p><div class="seg3" role="group" aria-label="Profundidade">'+[1,2,3].map(n=>'<button type="button" class="chip'+((+S.depth||1)===n?" on":"")+'" data-depth="'+n+'">'+(n*40)+' fichas</button>').join("")+'</div></div></div></div>'+
  '<div class="card setcard"><h3>'+ico("mail",17)+'Mensagem de solicitação</h3><p>Modelo usado no WhatsApp, e-mail e cópia. Clique numa variável para inserir.</p><textarea class="ta" id="st-template" data-st="template" style="min-height:260px">'+esc(S.template)+'</textarea><div class="vars">'+["fornecedor","empresa","solicitante","telefone","email","itens","entrega","prazo","codigo","obra"].map(v=>'<code data-var="'+v+'">{'+v+'}</code>').join("")+'</div><div style="margin-top:12px"><button class="btn sm" type="button" id="resetTpl">Restaurar modelo padrão</button></div></div>'+
  '<div class="card setcard"><h3>'+ico("database",17)+'Dados e backup</h3><p>Tudo fica salvo neste navegador. Exporte um backup para levar a outro computador ou guardar com segurança.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="bkExp">'+ico("download",16)+'Exportar backup</button><label class="btn" for="bkImp" tabindex="0">'+ico("upload",16)+'Importar backup<input class="hidden" id="bkImp" type="file" accept=".json,application/json"></label><button class="btn danger" type="button" id="wipe">'+ico("trash",16)+'Apagar tudo</button></div><div class="hint" style="margin-top:14px">'+suppliers.length+' fornecedores · '+processes.length+' cotações · chaves de API não entram no backup.</div></div></div>';
  el.querySelectorAll("[data-st]").forEach(i=>i.addEventListener("change",()=>{S[i.dataset.st]=i.value.trim?i.value.trim():i.value;saveSettings();toast("Ajuste salvo.")}));
  el.querySelectorAll("[data-var]").forEach(c=>c.onclick=()=>{const t=$("#st-template");const pos=t.selectionStart||t.value.length;t.value=t.value.slice(0,pos)+"{"+c.dataset.var+"}"+t.value.slice(pos);S.template=t.value;saveSettings();t.focus()});
  $("#resetTpl").onclick=()=>{S.template=DEFAULT_TEMPLATE;saveSettings();renderAjustes();toast("Modelo restaurado.")};
  $("#testGeo").onclick=async e=>{const k=$("#st-geoKey").value.trim();if(!k){toast("Cole a chave primeiro.");return}S.geoKey=k;saveSettings();e.target.disabled=true;try{const d=await httpJson("https://api.geoapify.com/v1/geocode/search?text=Fortaleza&limit=1&format=json&apiKey="+encodeURIComponent(k));toast(d&&d.results?"Geoapify respondeu: chave válida.":"Resposta inesperada da Geoapify.")}catch(err){toast(err.status===401||err.status===403?"A Geoapify recusou a chave.":"Falha ao testar: "+err.message)}finally{e.target.disabled=false}};
+ el.querySelectorAll("[data-depth]").forEach(b=>b.onclick=()=>{S.depth=+b.dataset.depth;saveSettings();el.querySelectorAll("[data-depth]").forEach(x=>x.classList.toggle("on",x===b));toast("Profundidade: "+(S.depth*40)+" fichas por segmento.")});
  $("#bkExp").onclick=()=>{const {geoKey,...safe}=settings;download("suprimo-backup-"+new Date().toISOString().slice(0,10)+".json",JSON.stringify({app:"suprimo",version:1,exportedAt:new Date().toISOString(),settings:safe,suppliers,processes},null,2),"application/json")};
  $("#bkImp").onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const d=JSON.parse(await file.text());if(d.app!=="suprimo")throw 0;const sm=new Map(suppliers.map(s=>[s.id,s]));(d.suppliers||[]).forEach(s=>sm.set(s.id,{...sm.get(s.id),...s}));suppliers=[...sm.values()];const pm=new Map(processes.map(p=>[p.id,p]));(d.processes||[]).forEach(p=>pm.set(p.id,p));processes=[...pm.values()];if(d.settings){const {geoKey,...rest}=d.settings;Object.assign(settings,rest)}saveSettings();saveSuppliers();saveProcesses();toast("Backup importado e mesclado.");renderAjustes()}catch(err){toast("Arquivo inválido: não é um backup do Suprimo.")}finally{e.target.value=""}};
  $("#wipe").onclick=async()=>{if(!await confirmBox("Apagar todos os dados?","Fornecedores, cotações e ajustes deste navegador serão removidos. Exporte um backup antes, se quiser guardar.","Apagar tudo",true))return;suppliers=[];processes=[];activeId=null;const t=settings.theme;settings={...settings,company:"",cnpj:"",requester:"",phone:"",email:"",delivery:"",template:DEFAULT_TEMPLATE};settings.theme=t;saveSettings();saveSuppliers();saveProcesses();toast("Dados apagados.");renderAjustes()}}
