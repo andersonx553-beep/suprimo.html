@@ -126,3 +126,23 @@
   .tabela-lista td.acao { padding-top: 6px; }
   .tabela-lista td.muted:empty { display: none; }
 }
+
+/* Formulários e ajustes */
+.nova { display: flex; gap: 8px; margin-bottom: 12px; }
+.nova input { flex: 1; max-width: 520px; height: 32px; }
+.ajustes { display: grid; gap: 14px; max-width: 760px; }
+.campos { display: grid; gap: 10px; }
+.campos.duas { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.campos label { display: grid; gap: 3px; }
+.dados-cot { grid-template-columns: 2fr 1fr 1fr; margin-bottom: 12px; }
+.registro .campos { margin-bottom: 10px; }
+.registro p { margin: 6px 0; }
+.achar { max-width: 760px; }
+.selo-ok { color: var(--ok); }
+dialog { border: 1px solid var(--linha-forte); border-radius: 6px; background: var(--superficie); color: var(--texto); padding: 18px 20px; width: min(560px, 94vw); }
+dialog::backdrop { background: rgba(0, 0, 0, .4); }
+.form-forn { display: grid; gap: 10px; }
+.form-forn label { display: grid; gap: 3px; }
+.linha-cnpj { display: flex; gap: 6px; }
+.linha-cnpj input { flex: 1; }
+@media (max-width: 760px) { .dados-cot { grid-template-columns: 1fr; } .nova { flex-direction: column; } .nova input { max-width: none; } }

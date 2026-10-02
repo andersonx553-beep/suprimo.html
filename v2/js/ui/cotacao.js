@@ -5,7 +5,7 @@ import { aviso } from "./util.js";
 import * as repos from "../dados/repos.js";
 import { compararCotacao, chaveItem } from "../dominio/mapa.js";
 import { PROXIMO, TOM, CANCELADA } from "../dominio/status.js";
-import { dataBr, diasEntre, hojeIso } from "../dominio/formato.js";
+import { dataBr, diasEntre, hojeIso, somarDias } from "../dominio/formato.js";
 import { renderItens, ligarItens } from "./abas/itens.js";
 import { renderConvidados, ligarConvidados } from "./abas/convidados.js";
 import { renderPropostas, ligarPropostas } from "./abas/propostas.js";
@@ -95,7 +95,16 @@ export async function abrirCotacao(id, aba, raiz, { ir }) {
   raiz.querySelectorAll('[data-acao="imprimir"]').forEach((b) => b.addEventListener("click", () => window.print()));
   raiz.querySelector('[data-acao="proximo"]')?.addEventListener("click", () => {
     if (prox.aba) return ctx.ir(prox.aba);
-    salvar((c) => { c.status = prox.para; });
+    salvar((c) => {
+      c.status = prox.para;
+      if (prox.para === "Comprada") {
+        const r = resumoDecisao(ctx);
+        const prazos = r.tipo === "unico" ? [r.col?.prazoEntrega] : r.div.fretes.map((f) => res.colunas.find((x) => x.propostaId === f.propostaId)?.prazoEntrega);
+        const dias = Math.max(...prazos.filter((x) => x != null), -1);
+        c.compradaEm = hojeIso();
+        c.entregaPrevista = dias >= 0 ? somarDias(hojeIso(), dias) : "";
+      }
+    });
   });
   raiz.querySelector('[data-acao="cancelar"]')?.addEventListener("click", () => {
     if (confirm(`Cancelar a cotação ${cot.numero}?`)) salvar((c) => { c.status = CANCELADA; });

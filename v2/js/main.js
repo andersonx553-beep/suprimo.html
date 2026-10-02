@@ -3,7 +3,10 @@ import * as repos from "./dados/repos.js";
 import { icone } from "./ui/icones.js";
 import { abrirCotacao } from "./ui/cotacao.js";
 import { abrirLista } from "./ui/lista-cotacoes.js";
-import { esc, aviso } from "./ui/util.js";
+import { abrirHoje } from "./ui/hoje.js";
+import { abrirFornecedores } from "./ui/fornecedores.js";
+import { abrirPrecos } from "./ui/precos.js";
+import { abrirAjustes } from "./ui/ajustes.js";
 
 const AREAS = [
   { id: "hoje", nome: "Hoje", icone: "hoje", rota: "#/hoje" },
@@ -57,10 +60,11 @@ async function rotear() {
   window.scrollTo(0, 0);
   if (area === "cotacao") await abrirCotacao(id, aba, conteudo, { ir: (h) => { location.hash = h; } });
   else if (area === "cotacoes") await abrirLista(conteudo);
-  else {
-    const nome = AREAS.find((a) => a.id === area)?.nome ?? "Área";
-    conteudo.innerHTML = `<header class="cab-simples"><h1>${esc(nome)}</h1></header><div class="vazio"><p>Esta área entra depois da aprovação da tela da cotação.</p><a class="btn" href="#/cotacao/cot-1/mapa">Abrir a cotação de exemplo</a></div>`;
-  }
+  else if (area === "hoje") await abrirHoje(conteudo);
+  else if (area === "fornecedores") await abrirFornecedores(conteudo);
+  else if (area === "precos") await abrirPrecos(conteudo);
+  else if (area === "ajustes") await abrirAjustes(conteudo);
+  else location.hash = "#/hoje";
   const cs = await repos.cotacoes.listar();
   document.getElementById("faixa-exemplo").hidden = !cs.some((c) => c.exemplo);
 }
@@ -69,6 +73,6 @@ const ajustes0 = await repos.ajustes.obter();
 if (ajustes0.tema) document.documentElement.dataset.theme = ajustes0.tema;
 await repos.carregarExemplo();
 await montarCasca();
-if (!location.hash) location.hash = "#/cotacao/cot-1/mapa";
+if (!location.hash) location.hash = "#/hoje";
 addEventListener("hashchange", rotear);
 rotear();
