@@ -1,0 +1,36 @@
+/* Folha de impressão do mapa comparativo: A4 paisagem, sem menus. Só entra no media print (ver main.css). */
+@page { size: A4 landscape; margin: 12mm; }
+body { background: #fff; color: #000; font-size: 10px; }
+body::before, .topo, .navegacao, .rodape, .aviso, .dialogo, .voltar, .cartao.cotacao { display: none; }
+.principal { padding: 0; max-inline-size: none; min-block-size: 0; display: block; }
+.folha { display: block; }
+.folha__cab { display: flex; justify-content: space-between; align-items: flex-end; border-block-end: 2px solid #000; padding-block-end: 6px; margin-block-end: 6px; }
+.folha__cab h1 { font-size: 16px; margin-block-start: 2px; }
+.folha__cab dl { display: grid; grid-template-columns: auto auto; gap: 0 10px; }
+.folha__cab dt { color: #444; text-align: end; }
+.folha__cab dd { font-weight: 700; font-family: var(--fonte-mono); }
+.folha__titulo { margin-block-end: 6px; }
+.folha__aviso { font-weight: 700; margin-block-end: 3px; }
+.folha__nota { color: #444; }
+.folha .mapa { inline-size: 100%; border-collapse: collapse; }
+.folha .mapa th, .folha .mapa td { position: static; border: 1px solid #777; padding: 2px 6px; background: #fff; color: #000; min-inline-size: 0; box-shadow: none; }
+.folha .mapa tbody tr { block-size: auto; break-inside: avoid; }
+.folha .mapa__celula[data-estado="menor"] { background: #dff5e8; outline: 2px solid #000; outline-offset: -2px; }
+.folha .mapa__celula[data-estado="menor"] .mapa__preco { color: #000; }
+.folha .mapa__celula[data-estado="nao-cotou"] { background: #eee; }
+.folha .mapa__celula[data-estado="unidade"] { background: #fff3d6; }
+.folha .mapa__sub, .folha .mapa__cnpj, .folha .mapa tfoot .mapa__item, .folha .mapa__alta { color: #333; }
+.folha .selo { color: #000; background: none; border: 1px solid #000; }
+.folha .mapa__qtd { display: table-cell; }
+.folha .mapa__item .mapa__qtd-estreita { display: none; }
+.folha .mapa__cnpj { display: block; }
+.folha__decisao { margin-block-start: 10px; break-inside: avoid; }
+.folha__decisao h2 { font-size: 12px; margin-block-end: 3px; }
+.folha__assinaturas { display: grid; grid-template-columns: 1fr 1.3fr 0.5fr; gap: 28px; margin-block-start: 16px; break-inside: avoid; }
+.folha__assinaturas div { text-align: center; }
+.folha__assinaturas span { display: block; padding-block-start: 28px; border-block-end: 1px solid #000; margin-block-end: 3px; }
+.folha .mapa__preco { font-size: 10.5px; }
+.folha .mapa__sub, .folha .mapa__cnpj { font-size: 8.5px; }
+.folha .mapa tfoot [data-linha="total"] strong { font-size: 12px; }
+.folha .mapa__selos { margin-block-start: 1px; }
+.folha__titulo { margin-block-end: 4px; }
