@@ -1,0 +1,64 @@
+/* Tokens: o único lugar com cores, espaços, tipografia, raios e sombras. Tema = trocar só estes valores.
+   light-dark() escolhe o valor pelo color-scheme: o aparelho (auto) ou data-theme (manual). */
+:root {
+  color-scheme: dark light;
+
+  /* superfícies e linhas */
+  --cor-fundo: light-dark(#f3f4f6, #0a0c0f);
+  --cor-fundo-2: light-dark(#eceef2, #0e1116);
+  --cor-superficie: light-dark(#ffffff, #12161c);
+  --cor-superficie-2: light-dark(#f7f8fa, #171c23);
+  --cor-elevada: light-dark(#eef0f4, #1d232c);
+  --cor-linha: light-dark(#e1e5ea, #232a34);
+  --cor-linha-forte: light-dark(#d2d8e0, #2e3743);
+  --cor-grade: light-dark(rgb(20 30 50 / 3.5%), rgb(255 255 255 / 2.8%));
+
+  /* texto */
+  --cor-texto: light-dark(#14181e, #eef2f6);
+  --cor-texto-2: light-dark(#4f5a68, #9aa5b3);
+  --cor-texto-3: light-dark(#667180, #7f8b9a);
+
+  /* destaque âmbar do Suprimo */
+  --cor-destaque: #f5a524;
+  --cor-destaque-texto: light-dark(#8f5400, #ffc766);
+  --cor-destaque-tinta: #1b1204;
+  --cor-destaque-suave: light-dark(rgb(245 165 36 / 14%), rgb(245 165 36 / 12%));
+  --cor-destaque-linha: light-dark(rgb(210 130 0 / 45%), rgb(245 165 36 / 38%));
+
+  /* significado: concluído, atenção, vencido */
+  --cor-ok: light-dark(#0b7a48, #3fd68f);
+  --cor-ok-suave: light-dark(rgb(15 154 92 / 10%), rgb(63 214 143 / 12%));
+  --cor-ok-linha: light-dark(rgb(15 154 92 / 40%), rgb(63 214 143 / 38%));
+  --cor-aviso: light-dark(#8f5400, #ffb547);
+  --cor-aviso-suave: light-dark(rgb(245 165 36 / 14%), rgb(255 181 71 / 11%));
+  --cor-perigo: light-dark(#c0302f, #ff6b6b);
+  --cor-perigo-suave: light-dark(rgb(210 59 59 / 9%), rgb(255 107 107 / 10%));
+  --cor-foco: var(--cor-destaque);
+
+  /* espaçamento: escala de 4 px */
+  --esp-1: 0.25rem; --esp-2: 0.5rem; --esp-3: 0.75rem; --esp-4: 1rem; --esp-5: 1.25rem;
+  --esp-6: 1.5rem; --esp-8: 2rem; --esp-10: 2.5rem; --esp-12: 3rem;
+
+  /* tipografia */
+  --fonte: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fonte-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --texto-xs: clamp(0.6875rem, 0.67rem + 0.1vw, 0.75rem);
+  --texto-sm: clamp(0.78rem, 0.76rem + 0.1vw, 0.8125rem);
+  --texto-md: clamp(0.84rem, 0.82rem + 0.15vw, 0.9rem);
+  --texto-lg: clamp(1rem, 0.95rem + 0.3vw, 1.125rem);
+  --texto-xl: clamp(1.4rem, 1.15rem + 1vw, 1.9rem);
+
+  /* formas e profundidade */
+  --raio-1: 0.375rem; --raio-2: 0.625rem; --raio-3: 0.875rem; --raio-4: 1rem;
+  --borda: 1px solid var(--cor-linha);
+  --sombra-cor: light-dark(rgb(20 30 50 / 18%), rgb(0 0 0 / 55%));
+  --sombra-1: 0 6px 18px -10px var(--sombra-cor);
+  --sombra-2: 0 18px 44px -22px var(--sombra-cor);
+
+  --largura-max: 97.5rem;
+  --altura-topo: 4rem;
+  --altura-linha: 2.5rem;
+  --tempo: 0.15s;
+}
+:root[data-theme="claro"] { color-scheme: light; }
+:root[data-theme="escuro"] { color-scheme: dark; }

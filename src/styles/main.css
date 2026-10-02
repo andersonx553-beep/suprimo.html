@@ -1,0 +1,10 @@
+/* Ordem das camadas: a última vence. Sem !important, exceto nos utilitários documentados. */
+@layer reset, tokens, base, layout, components, utilities, print;
+
+@import url("reset.css") layer(reset);
+@import url("tokens.css") layer(tokens);
+@import url("base.css") layer(base);
+@import url("layout.css") layer(layout);
+@import url("components.css") layer(components);
+@import url("utilities.css") layer(utilities);
+@import url("print.css") layer(print) print;
