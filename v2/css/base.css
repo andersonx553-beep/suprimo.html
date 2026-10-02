@@ -1,0 +1,46 @@
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--fundo); color: var(--texto);
+  font: 14px/1.45 var(--fonte); font-variant-numeric: tabular-nums;
+}
+h1, h2, p { margin: 0; }
+h1 { font-size: 18px; font-weight: 600; line-height: 1.25; }
+a { color: inherit; }
+.mono, .num { font-family: var(--fonte-mono); font-size: 13px; }
+.num { text-align: right; }
+.muted { color: var(--texto-2); }
+.ico { flex: none; display: block; }
+:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+
+/* Estrutura: menu lateral reto no computador, barra inferior no celular. */
+.app { display: grid; grid-template-columns: var(--lateral) minmax(0, 1fr); min-height: 100vh; }
+.lateral { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; border-right: 1px solid var(--linha); padding: 14px 0; }
+.marca { display: flex; align-items: center; gap: 8px; padding: 0 16px 14px; }
+.marca-logo { width: 24px; height: 24px; display: grid; place-items: center; background: var(--botao); color: var(--botao-texto); border-radius: 4px; font-weight: 600; }
+.marca-nome { font-weight: 600; }
+.marca-versao { color: var(--texto-2); font-size: 11px; }
+.menu-lateral { display: flex; flex-direction: column; }
+.menu-lateral a, .menu-inferior a { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--texto-2); }
+.menu-lateral a { padding: 9px 16px; border-left: 3px solid transparent; }
+.menu-lateral a:hover { background: var(--superficie-2); color: var(--texto); }
+.menu-lateral a.ativa { color: var(--texto); font-weight: 600; border-left-color: var(--texto); background: var(--superficie-2); }
+.lateral-rodape { margin-top: auto; padding: 0 12px; }
+.menu-inferior { display: none; }
+.conteudo { padding: 20px 28px 56px; min-width: 0; max-width: 1280px; }
+
+.faixa-exemplo { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 5px 8px; margin-bottom: 8px; font-size: 12px; border: 1px dashed var(--linha-forte); border-radius: var(--raio); color: var(--texto-2); }
+
+#aviso { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; background: var(--botao); color: var(--botao-texto); padding: 8px 14px; border-radius: var(--raio); transition: .2s; z-index: 20; }
+#aviso.visivel { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 760px) {
+  .app { display: block; padding-bottom: 64px; }
+  .lateral { display: none; }
+  .conteudo { padding: 14px 16px 24px; }
+  .menu-inferior { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; inset: auto 0 0 0; z-index: 10; background: var(--superficie); border-top: 1px solid var(--linha); padding-bottom: env(safe-area-inset-bottom); }
+  .menu-inferior a { flex-direction: column; gap: 2px; padding: 8px 2px 7px; font-size: 11px; border-top: 3px solid transparent; }
+  .menu-inferior a.ativa { color: var(--texto); font-weight: 600; border-top-color: var(--texto); }
+}

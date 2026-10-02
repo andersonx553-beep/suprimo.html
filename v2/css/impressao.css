@@ -1,0 +1,25 @@
+@page { size: A4 landscape; margin: 12mm; }
+body { background: #fff; color: #000; font-size: 11px; }
+.lateral, .menu-inferior, .conteudo > :not(.folha), .faixa-exemplo, #aviso { display: none !important; }
+.app { display: block; padding: 0; }
+.conteudo { padding: 0; max-width: none; }
+.folha { display: block !important; }
+.folha-cab { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 6px; }
+.folha-cab h1 { font-size: 16px; margin-top: 2px; }
+.folha-cab dl { display: grid; grid-template-columns: auto auto; gap: 0 10px; margin: 0; }
+.folha-cab dt { color: #444; text-align: right; }
+.folha-cab dd { margin: 0; font-weight: 600; }
+.folha-titulo { margin-bottom: 6px; }
+.folha-aviso { font-weight: 600; margin-bottom: 4px; }
+.folha .mapa { border-collapse: collapse; width: 100%; }
+.folha .mapa th, .folha .mapa td { border: 1px solid #777; padding: 3px 6px; background: #fff !important; color: #000; min-width: 0; position: static; }
+.folha .mapa tbody tr { height: auto; }
+.folha .mapa td.menor { box-shadow: none; outline: 2px solid #000; outline-offset: -2px; }
+.folha .mapa td.nao-cotou { background: #eee !important; }
+.folha .mapa .sub, .folha .mapa .forn-cnpj, .folha .mapa .item-spec, .folha .mapa tfoot th.item { color: #333 !important; }
+.folha .mapa tr { break-inside: avoid; }
+.folha-decisao { margin-top: 10px; break-inside: avoid; }
+.folha-decisao h2 { font-size: 13px; margin-bottom: 3px; }
+.assinaturas { display: grid; grid-template-columns: 1fr 1.3fr .5fr; gap: 28px; margin-top: 22px; break-inside: avoid; }
+.assinaturas div { text-align: center; font-size: 11px; }
+.assinaturas span { display: block; height: 0; padding-top: 28px; border-top: 0; border-bottom: 1px solid #000; margin-bottom: 3px; }
