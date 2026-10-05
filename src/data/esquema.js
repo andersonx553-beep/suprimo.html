@@ -2,7 +2,7 @@
 // As migrações valem para o que está no IndexedDB e para backups antigos importados.
 import { MODELO_PADRAO } from "../domain/convite.js";
 
-export const VERSAO_ATUAL = 1;
+export const VERSAO_ATUAL = 2;
 
 export const AJUSTES_PADRAO = Object.freeze({
   empresa: { nome: "", cnpj: "" },
@@ -16,7 +16,15 @@ export const AJUSTES_PADRAO = Object.freeze({
 
 /** Cada chave é a versão de origem; a função devolve os dados na versão seguinte. */
 export const MIGRACOES = {
-  // 1: (dados) => ({ ...dados, cotacoes: dados.cotacoes.map(...) }),  ← modelo para a próxima mudança
+  // 1 → 2: orçamentos importados. Proposta ganha status, origem, desconto e tipo de frete; nasce a coleção de documentos.
+  1: (dados) => ({
+    ...dados,
+    documentos: dados.documentos ?? [],
+    cotacoes: (dados.cotacoes ?? []).map((c) => ({
+      ...c,
+      propostas: (c.propostas ?? []).map((p) => ({ status: "confirmada", origem: "manual", descontoCentavos: 0, freteTipo: "", ...p })),
+    })),
+  }),
 };
 
 /**
@@ -59,6 +67,7 @@ export function validarEstrutura(d) {
       }
     }
   });
+  if (d.documentos != null && !ehLista(d.documentos)) erros.push("Os documentos importados estão em formato inválido.");
   d.fornecedores.forEach((f, i) => { if (!f || !ehTexto(f.id) || !ehTexto(f.nome)) erros.push(`Fornecedor ${i + 1}: sem identificação ou nome.`); });
   return erros.slice(0, 5);
 }
@@ -73,10 +82,10 @@ export function lerBackup(texto, migracoes = MIGRACOES, alvo = VERSAO_ATUAL) {
   const erros = validarEstrutura(bruto);
   if (erros.length) throw new Error(erros.join(" "));
   const dados = migrar(bruto, migracoes, alvo);
-  return { ...dados, ajustes: { ...AJUSTES_PADRAO, ...(dados.ajustes ?? {}) } };
+  return { ...dados, documentos: dados.documentos ?? [], ajustes: { ...AJUSTES_PADRAO, ...(dados.ajustes ?? {}) } };
 }
 
 /** Monta o objeto de backup a partir do estado atual. */
-export function montarBackup({ cotacoes, fornecedores, ajustes }, agora = new Date().toISOString()) {
-  return { sistema: "suprimo", versaoEsquema: VERSAO_ATUAL, exportadoEm: agora, ajustes, fornecedores, cotacoes };
+export function montarBackup({ cotacoes, fornecedores, ajustes, documentos = [] }, agora = new Date().toISOString()) {
+  return { sistema: "suprimo", versaoEsquema: VERSAO_ATUAL, exportadoEm: agora, ajustes, fornecedores, cotacoes, documentos };
 }

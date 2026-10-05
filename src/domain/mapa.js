@@ -19,7 +19,7 @@ export const chaveItem = (descricao) => semAcento(descricao).toLowerCase().repla
  * @typedef {Object} Coluna
  * @property {string} propostaId @property {string} fornecedorId
  * @property {Celula[]} celulas
- * @property {number} subtotal @property {number} freteCentavos @property {number} custoTotal
+ * @property {number} subtotal @property {number} descontoCentavos @property {number} freteCentavos @property {number} custoTotal
  * @property {number|null} prazoEntregaDias @property {string} pagamento @property {string} validade
  * @property {boolean} incompleta @property {boolean} unidadeDiferente @property {boolean} vencida
  * @property {boolean} elegivel @property {boolean} sugerida
@@ -40,13 +40,15 @@ export function compararCotacao(cotacao, { hoje, minPropostas = 3, ultimoPreco =
     const naoCotou = celulas.filter((c) => c.estado === "naoCotou").length;
     const divergentes = celulas.filter((c) => c.estado === "unidadeDivergente").length;
     const frete = p.freteCentavos || 0;
+    const desconto = p.descontoCentavos || 0;
     return {
       propostaId: p.id,
       fornecedorId: p.fornecedorId,
       celulas,
       subtotal,
       freteCentavos: frete,
-      custoTotal: subtotal + frete,
+      descontoCentavos: desconto,
+      custoTotal: subtotal - desconto + frete,
       prazoEntregaDias: p.prazoEntregaDias ?? null,
       pagamento: [p.pagamento?.texto, p.pagamento?.dias != null ? `${p.pagamento.dias} dias` : ""].filter(Boolean).join(" · "),
       validade: p.validade || "",

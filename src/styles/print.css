@@ -34,3 +34,4 @@ body::before, .topo, .navegacao, .rodape, .aviso, .dialogo, .voltar, .cartao.cot
 .folha .mapa tfoot [data-linha="total"] strong { font-size: 12px; }
 .folha .mapa__selos { margin-block-start: 1px; }
 .folha__titulo { margin-block-end: 4px; }
+.barra-acoes, .conferencia { display: none; }

@@ -1,0 +1,43 @@
+{
+  "fornecedor": {
+    "razaoSocial": "Ponto Hidro Distribuidora de Materiais Ltda",
+    "nomeFantasia": "PONTOHIDRO",
+    "cnpj": "34582117000142",
+    "cnpjValido": true,
+    "inscricaoEstadual": "06.418.207-3",
+    "telefone": "(85) 3254-7781",
+    "whatsapp": "(85) 98812-4407",
+    "email": "orcamentos@pontohidrofortaleza.com.br",
+    "endereco": "Rua Padre Valdevino, 1480 – Aldeota – Fortaleza/CE – CEP 60135-040"
+  },
+  "orcamento": {
+    "numero": "ORC-2026-0847",
+    "emissao": "2026-10-05",
+    "validade": "2026-10-20",
+    "vendedor": "Marcos Tavares"
+  },
+  "condicoes": {
+    "prazoEntrega": "2 dias úteis após confirmação",
+    "prazoEntregaDias": 2,
+    "pagamento": "Boleto 28 dias",
+    "pagamentoDias": 28,
+    "freteTipo": "FOB",
+    "freteCentavos": 3500,
+    "descontoCentavos": 8830,
+    "descontoPercentual": 5,
+    "subtotalCentavos": 176590,
+    "totalCentavos": 171260
+  },
+  "itens": [
+    { "numero": 1, "codigo": "TB-SOL-025", "descricao": "Tubo PVC soldável 25 mm x 6 m - Tigre", "unidade": "BR", "quantidade": 20, "unitarioCentavos": 1890, "totalCentavos": 37800 },
+    { "numero": 2, "codigo": "TB-SOL-032", "descricao": "Tubo PVC soldável 32 mm x 6 m - Tigre", "unidade": "BR", "quantidade": 10, "unitarioCentavos": 2950, "totalCentavos": 29500 },
+    { "numero": 3, "codigo": "JL-SOL-025", "descricao": "Joelho 90° soldável 25 mm - Tigre", "unidade": "PC", "quantidade": 50, "unitarioCentavos": 85, "totalCentavos": 4250 },
+    { "numero": 4, "codigo": "TE-SOL-025", "descricao": "Tê soldável 25 mm - Tigre", "unidade": "PC", "quantidade": 30, "unitarioCentavos": 120, "totalCentavos": 3600 },
+    { "numero": 5, "codigo": "RG-ESF-025", "descricao": "Registro de esfera VS soldável 25 mm - Amanco", "unidade": "PC", "quantidade": 8, "unitarioCentavos": 1490, "totalCentavos": 11920 },
+    { "numero": 6, "codigo": "AD-PVC-175", "descricao": "Adesivo plástico para PVC 175 g - Tigre", "unidade": "UN", "quantidade": 6, "unitarioCentavos": 1680, "totalCentavos": 10080 },
+    { "numero": 7, "codigo": "FT-VED-050", "descricao": "Fita veda rosca 18 mm x 50 m", "unidade": "RL", "quantidade": 12, "unitarioCentavos": 640, "totalCentavos": 7680 },
+    { "numero": 8, "codigo": "TN-JAR-012", "descricao": "Torneira de jardim metal cromado 1/2\"", "unidade": "UN", "quantidade": 4, "unitarioCentavos": 3290, "totalCentavos": 13160 },
+    { "numero": 9, "codigo": "SF-SAN-UNV", "descricao": "Sifão sanfonado universal branco", "unidade": "PC", "quantidade": 10, "unitarioCentavos": 970, "totalCentavos": 9700 },
+    { "numero": 10, "codigo": "CX-POL-1000", "descricao": "Caixa d'água polietileno 1.000 L com tampa - Fortlev", "unidade": "UN", "quantidade": 1, "unitarioCentavos": 48900, "totalCentavos": 48900 }
+  ]
+}

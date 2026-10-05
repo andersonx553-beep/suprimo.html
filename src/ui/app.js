@@ -7,6 +7,7 @@ import { telaCotacoes } from "./telas/cotacoes.js";
 import { telaCotacao } from "./telas/cotacao.js";
 import { telaFornecedores } from "./telas/fornecedores.js";
 import { telaAjustes } from "./telas/ajustes.js";
+import { telaImportar } from "./telas/importar.js";
 import { avisar } from "./componentes/aviso.js";
 
 const AREAS = [
@@ -39,11 +40,11 @@ export function iniciarApp(raiz, store) {
   let ultimaRota = "";
   const desenhar = (preservar = false) => {
     const rota = lerRota();
-    const chave = `${rota.area}/${rota.numero}`;
+    const chave = `${rota.area}/${rota.numero}/${rota.aba === "importar" ? "importar" : ""}`;
     const rolagem = window.scrollY;
     limpar();
     raiz.querySelectorAll("[data-area]").forEach((a) => (a.dataset.area === rota.area ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
-    const telas = { cotacoes: rota.numero ? telaCotacao : telaCotacoes, fornecedores: telaFornecedores, ajustes: telaAjustes };
+    const telas = { cotacoes: rota.numero ? (rota.aba === "importar" ? telaImportar : telaCotacao) : telaCotacoes, fornecedores: telaFornecedores, ajustes: telaAjustes };
     limpar = telas[rota.area](principal, { store, rota }) ?? (() => {});
     raiz.querySelectorAll("[data-cont='cotacoes']").forEach((el) => { el.textContent = store.estado.cotacoes.length || ""; });
     raiz.querySelectorAll("[data-cont='fornecedores']").forEach((el) => { el.textContent = store.estado.fornecedores.length || ""; });
