@@ -5,7 +5,7 @@ import { dataBr, hoje } from "../../lib/formato.js";
 import { compararCotacao } from "../../domain/mapa.js";
 import { proximoPasso, voltar, estaEncerrada, rotuloStatus } from "../../domain/status.js";
 import { ultimosPrecosPagos } from "../../domain/precos.js";
-import { linkCotacao, ir, ABAS } from "../roteador.js";
+import { linkCotacao, linkImportar, ir, ABAS } from "../roteador.js";
 import { etiquetaStatus, estadoVazio } from "../componentes/pecas.js";
 import { abrirDialogo, confirmar } from "../componentes/dialogo.js";
 import { folhaImpressao } from "../componentes/folha-impressao.js";
@@ -54,6 +54,7 @@ export function telaCotacao(raiz, { store, rota }) {
         </div>
         <div class="cotacao__acoes">
           ${passo && passo.aba !== rota.aba ? html`<button class="botao botao--primario" data-passo>${passo.rotulo}${icone("seta", 16)}</button>` : ""}
+          ${encerrada ? "" : html`<a class="botao" href="${linkImportar(cot.numero)}" data-importar>${icone("subir", 16)}Importar orçamento (PDF)</a>`}
           <button class="botao-icone botao-icone--caixa" data-editar aria-label="Editar dados da cotação" title="Editar dados">${icone("editar")}</button>
           <button class="botao-icone botao-icone--caixa" data-duplicar aria-label="Duplicar cotação" title="Duplicar">${icone("duplicar")}</button>
           ${cot.status === "cancelada" ? html`<button class="botao" data-voltar>Reativar como rascunho</button>` : html`<button class="botao-icone botao-icone--caixa" data-cancelar aria-label="Cancelar cotação" title="Cancelar cotação">${icone("fechar")}</button>`}

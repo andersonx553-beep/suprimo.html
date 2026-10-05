@@ -31,7 +31,7 @@ export function abaItens({ cot }) {
       ${cot.itens.length ? html`
         <div class="tabela-quadro"><table class="tabela tabela--lista tabela--itens"><thead><tr><th class="tabela__num">#</th><th>Descrição</th><th>Qtd.</th><th>Un.</th><th>Especificação</th><th></th></tr></thead>
           <tbody>${linhas}</tbody></table></div>`
-        : estadoVazio({ icone: "lista", titulo: "Nenhum item ainda", texto: "Digite abaixo, escolha do catálogo do almoxarifado ou cole a lista inteira.", acoes: "" })}
+        : estadoVazio({ icone: "lista", titulo: "Nenhum item ainda", texto: "Digite abaixo, escolha do catálogo do almoxarifado ou cole a lista inteira. Já tem o orçamento em PDF? Importe: os itens vêm dele.", acoes: html`<a class="botao" href="#/cotacoes/${encodeURIComponent(cot.numero)}/importar">Importar orçamento (PDF)</a>` })}
       <form class="novo-item" data-form="novo-item" autocomplete="off">
         <label class="campo-rotulado novo-item__desc">Descrição<input class="campo" name="descricao" list="lista-catalogo" required placeholder="Digite ou escolha do catálogo"></label>
         <label class="campo-rotulado">Qtd.<input class="campo campo--num" name="quantidade" inputmode="decimal" value="1" required></label>
