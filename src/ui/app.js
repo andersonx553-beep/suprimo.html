@@ -9,6 +9,7 @@ import { telaFornecedores } from "./telas/fornecedores.js";
 import { telaAjustes } from "./telas/ajustes.js";
 import { telaImportar } from "./telas/importar.js";
 import { avisar } from "./componentes/aviso.js";
+import { VERSAO, NOVIDADE } from "../lib/versao.js";
 
 const AREAS = [
   { id: "cotacoes", rotulo: "Cotações", icone: "cotacoes", href: "#/cotacoes" },
@@ -28,7 +29,7 @@ export function iniciarApp(raiz, store) {
     </div></header>
     <main id="principal" class="principal" tabindex="-1"></main>
     ${navegacao("navegacao navegacao--base")}
-    <footer class="rodape">Os dados ficam salvos neste navegador. Confira preços, prazos e cadastro direto com cada fornecedor. CNPJ: <a href="https://brasilapi.com.br" target="_blank" rel="noopener">BrasilAPI</a></footer>`);
+    <footer class="rodape">Os dados ficam salvos neste navegador. Confira preços, prazos e cadastro direto com cada fornecedor. CNPJ: <a href="https://brasilapi.com.br" target="_blank" rel="noopener">BrasilAPI</a> · <span class="mono">Versão ${VERSAO}</span> (${NOVIDADE})</footer>`);
 
   const principal = raiz.querySelector("#principal");
   const botaoTema = raiz.querySelector("[data-tema]");
