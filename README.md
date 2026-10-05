@@ -14,9 +14,19 @@ Abra http://localhost:8000. Na primeira vez, **Carregar demonstração** cria um
 
 ## Testar
 
-    npm test           # node --test, sem dependências
+    npm install        # só para os testes de leitura de PDF (pdfjs-dist em devDependencies)
+    npm test           # node --test
 
-Cobre as regras do mapa (menor preço por linha, custo total com frete, incompleta fora da sugestão, desempate por prazo, unidade divergente, validade vencida, compra dividida), o leitor da lista colada, decisão e justificativa, fila, numeração, backup, migrações do esquema e o store.
+Cobre a importação de orçamento (extração do PDF de `tests/fixtures` comparada campo a campo com o gabarito, validações, duplicidade, migração v1→v2 e gravação com desfazer), as regras do mapa (menor preço por linha, custo total com frete, incompleta fora da sugestão, desempate por prazo, unidade divergente, validade vencida, compra dividida), o leitor da lista colada, decisão e justificativa, fila, numeração, backup, migrações do esquema e o store.
+
+Roteiro de navegador da importação de orçamento (PC e celular), com o site no ar e o Playwright instalado:
+
+    python3 -m http.server 8000                      # em outro terminal
+    URL=http://localhost:8000/index.html npm run test:e2e -- /pasta/das/capturas
+
+## Importar orçamento
+
+Em uma cotação aberta, aba **Propostas → Importar orçamento (PDF)**. Aceita PDF com texto, até 10 MB; PDF com senha e PDF digitalizado (precisa de OCR, ainda não existe) recebem aviso e param. A leitura roda no navegador, sem API e sem custo. O PDF fica ao lado dos dados para conferência, e nada é salvo antes de **Confirmar orçamento**.
 
 ## Publicar
 
@@ -33,7 +43,9 @@ Cobre as regras do mapa (menor preço por linha, custo total com frete, incomple
       data/      esquema versionado + migrações, IndexedDB (e memória), catálogo, demonstração
       state/     store pequeno com eventos; as telas reagem a mudanças
       ui/        telas, abas e componentes (funções que renderizam e ligam eventos)
-      lib/       formatação pt-BR (Intl), ícones SVG, template HTML que escapa tudo, BrasilAPI
+      importacao/ leitura de orçamento em PDF: extrair, interpretar, validar, mapear, aplicar
+      lib/       formatação pt-BR (Intl), ícones SVG, template HTML que escapa tudo, BrasilAPI, carregador do pdfjs
+    vendor/pdfjs pdfjs-dist (legacy) embutido, sem CDN
       styles/    CSS em camadas: reset, tokens, base, layout, components, utilities, print
     tests/       node:test
     docs/        decisões de arquitetura
@@ -42,4 +54,4 @@ Por que cada escolha: [docs/decisoes.md](docs/decisoes.md).
 
 ## Dependências externas
 
-Só duas: as fontes do Google Fonts (Inter e JetBrains Mono) e a BrasilAPI (consulta de CNPJ). Não há chave de API.
+Só duas: as fontes do Google Fonts (Inter e JetBrains Mono) e a BrasilAPI (consulta de CNPJ). O pdfjs vai junto no repositório (`vendor/pdfjs`, licença Apache-2.0). Não há chave de API nem variável de ambiente.

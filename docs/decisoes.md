@@ -40,5 +40,15 @@ Segue o Suprimo 5: tema escuro por padrão, destaque âmbar `#f5a524`, Inter e J
 - Menos propostas que o mínimo: aviso, nunca bloqueio.
 - Último preço pago vem só de cotações **concluídas**; preço novo mais de 15% acima dispara o alerta.
 
+## Importar orçamento (PDF com texto)
+- **Tudo no navegador, sem API e sem IA.** O pdfjs lê cada trecho de texto com a posição (x, y); `importacao/linhas.js` reconstrói linhas e colunas; `importacao/interpretar.js` aplica regras: expressões regulares para formatos fixos (CNPJ com dígitos verificadores, e-mail, telefone, data, R$) e rótulo próximo para o resto (Validade, Prazo, Pagamento, Frete, Desconto, Subtotal, Total). Itens vêm da tabela pelo cabeçalho (colunas por posição, coluna de fotos ignorada); sem cabeçalho, plano B por linha.
+- **`extrairOrcamento(pdf)` é a única porta de entrada.** Devolve o mesmo JSON do gabarito. OCR ou IA no futuro entram como outra função com o mesmo retorno; conferência, validação e gravação não mudam. Só `extrair.js` fala com o pdfjs.
+- **pdfjs embutido em `vendor/pdfjs/` (versão legacy).** Sem CDN e sem build. A versão "moderna" usa `Math.sumPrecise`, que muitos navegadores ainda não têm; a legacy roda nos mais antigos. O pdfjs é carregado só quando a tela de importar abre. `pdfjs-dist` fica só em devDependencies, para os testes de node.
+- **Não corrige em silêncio.** `validar.js` só aponta: quantidade × unitário = total, soma dos itens = subtotal, subtotal − desconto + frete = total (tolerância de 1 centavo), validade anterior à emissão, orçamento vencido, CNPJ inválido. O valor lido continua como está até a pessoa mudar.
+- **Nada é salvo antes de "Confirmar orçamento".** A confirmação grava documento, PDF, fornecedor novo, itens novos, proposta e convite de uma vez; se algo falhar no meio, desfaz o que já gravou.
+- **Duplicidade:** o SHA-256 do arquivo é único (índice único no IndexedDB, não só checagem na tela). CNPJ + número de orçamento repetido só avisa, porque pode ser uma nova versão. Remover a proposta libera o PDF para importar de novo.
+- **Sem backend.** O projeto não tem servidor: o PDF fica no IndexedDB junto com os outros anexos (a coleção `documentos` faz o papel de `orcamento_documentos`). Se um dia houver Supabase, trocar é trocar o adaptador de `data/banco.js` (bucket privado `orcamentos` para o PDF, só o caminho no registro).
+- **Esquema v2** (migração 1→2): proposta ganha `status` ("confirmada"), `origem` ("manual" | "importada"), `descontoCentavos`, `freteTipo` e os dados do orçamento; nasce `documentos`. O desconto entra no custo total do mapa.
+
 ## Fora do escopo (de propósito)
 Leitura automática de orçamento, login, servidor ou sincronização, integração com outros sistemas, busca de fornecedores por API. O link "Procurar no Google Maps" só abre a pesquisa, sem API.
