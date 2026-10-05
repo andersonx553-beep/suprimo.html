@@ -45,6 +45,7 @@ export function tabelaMapa(res, fornecedores) {
       <tbody>${corpo}</tbody>
       <tfoot>
         ${rodape("Subtotal dos itens", (c) => reais(c.subtotal))}
+        ${res.colunas.some((c) => c.descontoCentavos) ? rodape("Desconto", (c) => (c.descontoCentavos ? `− ${reais(c.descontoCentavos)}` : "—")) : ""}
         ${rodape("Frete", (c) => (c.freteCentavos ? reais(c.freteCentavos) : "sem frete"))}
         ${rodape("Custo total", (c) => html`<strong>${reais(c.custoTotal)}</strong>${c.incompleta ? html`<span class="mapa__sub">faltam itens</span>` : c.unidadeDiferente ? html`<span class="mapa__sub">parcial: unidade diferente</span>` : ""}`, "total")}
         ${rodape("Prazo de entrega", (c) => (c.prazoEntregaDias != null ? `${c.prazoEntregaDias} ${c.prazoEntregaDias === 1 ? "dia" : "dias"}` : "—"))}

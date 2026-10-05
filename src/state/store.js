@@ -11,8 +11,8 @@ import { hoje, somarDias } from "../lib/formato.js";
 export const novoId = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);
 
 export function criarStore(adaptador) {
-  /** @type {{cotacoes:Cotacao[], fornecedores:Fornecedor[], ajustes:typeof AJUSTES_PADRAO, pronto:boolean}} */
-  const estado = { cotacoes: [], fornecedores: [], ajustes: { ...AJUSTES_PADRAO }, pronto: false };
+  /** @type {{cotacoes:Cotacao[], fornecedores:Fornecedor[], documentos:any[], ajustes:typeof AJUSTES_PADRAO, pronto:boolean}} */
+  const estado = { cotacoes: [], fornecedores: [], documentos: [], ajustes: { ...AJUSTES_PADRAO }, pronto: false };
   const ouvintes = new Set();
   const falhas = new Set();
 
@@ -28,9 +28,10 @@ export function criarStore(adaptador) {
 
     async iniciar() {
       const lido = await adaptador.carregar();
-      const migrado = migrar({ versaoEsquema: lido.versaoEsquema, cotacoes: lido.cotacoes, fornecedores: lido.fornecedores, ajustes: lido.ajustes });
+      const migrado = migrar({ versaoEsquema: lido.versaoEsquema, cotacoes: lido.cotacoes, fornecedores: lido.fornecedores, documentos: lido.documentos ?? [], ajustes: lido.ajustes });
       estado.cotacoes = migrado.cotacoes;
       estado.fornecedores = migrado.fornecedores;
+      estado.documentos = migrado.documentos ?? [];
       estado.ajustes = { ...AJUSTES_PADRAO, ...(migrado.ajustes ?? {}) };
       if (lido.versaoEsquema !== VERSAO_ATUAL) {
         await Promise.all([...estado.cotacoes.map((c) => adaptador.gravar("cotacoes", c)), ...estado.fornecedores.map((f) => adaptador.gravar("fornecedores", f))]);
@@ -85,8 +86,60 @@ export function criarStore(adaptador) {
       const c = store.cotacao(id);
       estado.cotacoes = estado.cotacoes.filter((x) => x.id !== c.id);
       for (const p of c.propostas) for (const a of p.anexos ?? []) persistir(adaptador.apagarAnexo(a.id));
+      for (const d of estado.documentos.filter((x) => x.cotacaoId === c.id)) persistir(adaptador.apagar("documentos", d.id));
+      estado.documentos = estado.documentos.filter((x) => x.cotacaoId !== c.id);
       persistir(adaptador.apagar("cotacoes", c.id));
       emitir({ origem: "cotacao" });
+    },
+
+    /** Remove a proposta, os arquivos dela e o registro do documento importado (liberando o mesmo PDF para importar de novo). */
+    removerProposta(cotacaoId, propostaId) {
+      const c = store.cotacao(cotacaoId);
+      const p = c.propostas.find((x) => x.id === propostaId);
+      for (const a of p?.anexos ?? []) persistir(adaptador.apagarAnexo(a.id));
+      for (const d of estado.documentos.filter((x) => x.propostaId === propostaId)) persistir(adaptador.apagar("documentos", d.id));
+      estado.documentos = estado.documentos.filter((x) => x.propostaId !== propostaId);
+      store.atualizarCotacao(cotacaoId, (cot) => {
+        cot.propostas = cot.propostas.filter((x) => x.id !== propostaId);
+        if (cot.decisao?.propostaId === propostaId) cot.decisao.propostaId = "";
+        for (const k of Object.keys(cot.decisao?.porItem ?? {})) if (cot.decisao.porItem[k] === propostaId) delete cot.decisao.porItem[k];
+      });
+    },
+
+    // ----- orçamentos importados -----
+    documentoPorHash: (hash) => estado.documentos.find((d) => d.fileHash === hash) ?? null,
+
+    /**
+     * Grava tudo de uma vez: documento (hash único), PDF, fornecedor novo, itens novos, proposta e convite.
+     * Se algo falhar no meio, desfaz o que já foi gravado e lança o erro: não fica meia importação.
+     * @param {{cotacaoId:string, plano:ReturnType<typeof import('../importacao/aplicar.js').montarImportacao>, arquivo:Blob}} entrada
+     */
+    async confirmarImportacao({ cotacaoId, plano, arquivo }) {
+      const cot = store.cotacao(cotacaoId);
+      try { await adaptador.gravar("documentos", plano.documento); }
+      catch (e) { throw e?.name === "ConstraintError" ? new Error("Este orçamento já foi importado.") : e; }
+      const copia = structuredClone(cot);
+      try {
+        await adaptador.salvarAnexo(plano.documento.anexoId, arquivo);
+        if (plano.fornecedorNovo) await adaptador.gravar("fornecedores", plano.fornecedor);
+        copia.itens.push(...plano.novosItens);
+        copia.propostas.push(plano.proposta);
+        const convite = copia.convites.find((v) => v.fornecedorId === plano.fornecedor.id);
+        if (convite) { if (convite.situacao === "nao_enviado" || convite.situacao === "enviado") convite.situacao = "respondeu"; }
+        else copia.convites.push({ id: novoId(), fornecedorId: plano.fornecedor.id, situacao: "respondeu", enviadoEm: "", canal: "" });
+        copia.atualizadaEm = new Date().toISOString();
+        await adaptador.gravar("cotacoes", copia);
+      } catch (e) {
+        await adaptador.apagar("documentos", plano.documento.id).catch(() => {});
+        await adaptador.apagarAnexo(plano.documento.anexoId).catch(() => {});
+        if (plano.fornecedorNovo) await adaptador.apagar("fornecedores", plano.fornecedor.id).catch(() => {});
+        throw e;
+      }
+      if (plano.fornecedorNovo) estado.fornecedores.push(plano.fornecedor);
+      estado.cotacoes[estado.cotacoes.findIndex((c) => c.id === cot.id)] = copia;
+      estado.documentos.push(plano.documento);
+      emitir({ origem: "importacao", cotacaoId });
+      return plano.proposta;
     },
 
     // ----- fornecedores -----
@@ -120,20 +173,21 @@ export function criarStore(adaptador) {
     apagarAnexo: (id) => adaptador.apagarAnexo(id),
 
     // ----- backup, demonstração e limpeza -----
-    exportar() { return montarBackup({ cotacoes: estado.cotacoes, fornecedores: estado.fornecedores, ajustes: estado.ajustes }); },
+    exportar() { return montarBackup({ cotacoes: estado.cotacoes, fornecedores: estado.fornecedores, ajustes: estado.ajustes, documentos: estado.documentos }); },
     /** Substitui tudo pelos dados já validados e migrados de `lerBackup`. */
     async importar(dados) {
       await adaptador.limparTudo();
       estado.cotacoes = dados.cotacoes;
       estado.fornecedores = dados.fornecedores;
+      estado.documentos = dados.documentos ?? [];
       estado.ajustes = { ...AJUSTES_PADRAO, ...dados.ajustes };
-      await Promise.all([...estado.cotacoes.map((c) => adaptador.gravar("cotacoes", c)), ...estado.fornecedores.map((f) => adaptador.gravar("fornecedores", f)),
+      await Promise.all([...estado.cotacoes.map((c) => adaptador.gravar("cotacoes", c)), ...estado.fornecedores.map((f) => adaptador.gravar("fornecedores", f)), ...estado.documentos.map((d) => adaptador.gravar("documentos", d)),
         adaptador.gravar("ajustes", { id: "ajustes", ...estado.ajustes }), adaptador.guardarVersao?.(VERSAO_ATUAL)]);
       emitir({ origem: "importar" });
     },
     async apagarTudo() {
       await adaptador.limparTudo();
-      Object.assign(estado, { cotacoes: [], fornecedores: [], ajustes: { ...AJUSTES_PADRAO } });
+      Object.assign(estado, { cotacoes: [], fornecedores: [], documentos: [], ajustes: { ...AJUSTES_PADRAO } });
       await adaptador.guardarVersao?.(VERSAO_ATUAL);
       emitir({ origem: "limpar" });
     },
