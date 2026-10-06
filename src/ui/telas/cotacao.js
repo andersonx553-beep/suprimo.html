@@ -84,8 +84,9 @@ export function telaCotacao(raiz, { store, rota }) {
   const limparAba = ligarAba?.(painel, ctx);
   raiz.querySelectorAll('[data-acao="imprimir"]').forEach((b) => b.addEventListener("click", () => window.print()));
 
-  raiz.querySelector("[data-passo]")?.addEventListener("click", () => {
+  raiz.querySelector("[data-passo]")?.addEventListener("click", async () => {
     if (passo.aba) return ir(base(passo.aba));
+    if (passo.para === "concluida" && !(await confirmar({ titulo: "A cotação foi aprovada pelo síndico?", texto: "Registre a conclusão após receber o mapa assinado. O pedido ao fornecedor é feito fora do Suprimo.", rotulo: "Registrar aprovação" }))) return;
     store.atualizarCotacao(cot.id, (c) => { c.status = passo.para; if (passo.para === "concluida") c.concluidaEm = new Date().toISOString(); });
     if (passo.para === "em_analise") ir(base("mapa"));
   });

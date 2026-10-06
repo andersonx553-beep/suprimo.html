@@ -25,7 +25,12 @@ body::before, .topo, .navegacao, .rodape, .aviso, .dialogo, .voltar, .cartao.cot
 .folha .mapa__item .mapa__qtd-estreita { display: none; }
 .folha .mapa__cnpj { display: block; }
 .folha__decisao { margin-block-start: 10px; break-inside: avoid; }
-.folha__decisao h2 { font-size: 12px; margin-block-end: 3px; }
+.folha__decisao h2, .folha__originais h2 { font-size: 12px; margin-block-end: 3px; }
+.folha__originais { margin-block-start: 10px; }
+.folha__origem { margin-block-start: 5px; break-inside: avoid; }
+.folha__origem ol { columns: 2; margin: 3px 0 0; padding-inline-start: 20px; }
+.folha__origem li { break-inside: avoid; margin-block-end: 2px; }
+.folha__aprovacao { margin-block-start: 10px; break-inside: avoid; }
 .folha__assinaturas { display: grid; grid-template-columns: 1fr 1.3fr 0.5fr; gap: 28px; margin-block-start: 16px; break-inside: avoid; }
 .folha__assinaturas div { text-align: center; }
 .folha__assinaturas span { display: block; padding-block-start: 28px; border-block-end: 1px solid #000; margin-block-end: 3px; }

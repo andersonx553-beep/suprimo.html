@@ -103,7 +103,7 @@ export function telaImportar(raiz, { store, rota }) {
   // ---------- fase 2: conferência ----------
   const faltando = () => new Set(camposFaltando(e.dados));
   const alertasAtuais = () => {
-    const lista = validarOrcamento(e.dados, { hoje: hoje() });
+    const lista = validarOrcamento(e.dados, { hoje: hoje(), nomeArquivo: e.arquivo?.name });
     const nSem = e.dados.itens.filter((_, i) => !e.correspondencia[i]).length;
     if (e.dados.itens.length && nSem) lista.push({ id: "sem-ligacao", nivel: "info", campo: "itens", mensagem: `${nSem} ${nSem === 1 ? "item não está ligado" : "itens não estão ligados"} a um item da cotação: ${nSem === 1 ? "fica" : "ficam"} guardado${nSem === 1 ? "" : "s"} no orçamento, mas ${nSem === 1 ? "não entra" : "não entram"} no mapa.` });
     e.dados.itens.forEach((it, i) => {
@@ -173,6 +173,7 @@ export function telaImportar(raiz, { store, rota }) {
               ${campo({ rotulo: "Número", caminho: "orcamento.numero", mono: true })}${campo({ rotulo: "Emissão", caminho: "orcamento.emissao", tipo: "data" })}
               ${campo({ rotulo: "Validade", caminho: "orcamento.validade", tipo: "data" })}${campo({ rotulo: "Vendedor", caminho: "orcamento.vendedor" })}
             </div>
+            ${d.orcamento.validadeTexto ? html`<p class="cartao__nota">O documento informa validade de ${d.orcamento.validadeTexto} a partir da emissão. Confira a data final com o fornecedor.</p>` : ""}
           </section>
           <section class="cartao"><h2 class="cartao__titulo">Condições</h2>
             <div class="formulario__grade">
@@ -181,6 +182,7 @@ export function telaImportar(raiz, { store, rota }) {
               ${campo({ rotulo: "Frete (R$)", caminho: "condicoes.freteCentavos", tipo: "dinheiro" })}${campo({ rotulo: "Desconto (R$)", caminho: "condicoes.descontoCentavos", tipo: "dinheiro" })}
               ${campo({ rotulo: "Subtotal (R$)", caminho: "condicoes.subtotalCentavos", tipo: "dinheiro" })}${campo({ rotulo: "Total (R$)", caminho: "condicoes.totalCentavos", tipo: "dinheiro" })}
             </div>
+            ${d.condicoes.freteTexto ? html`<p class="cartao__nota">Condição de frete no documento: ${d.condicoes.freteTexto}. Confirme se atende o destino da cotação.</p>` : ""}
           </section>
           <section class="cartao"><h2 class="cartao__titulo">Itens <span class="contador" data-contagem>${d.itens.length}</span></h2>
             <div class="tabela-quadro tabela-quadro--solto"><table class="tabela tabela--lista tabela--conferencia">

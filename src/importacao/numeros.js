@@ -1,17 +1,18 @@
 // Números e datas no formato brasileiro, para a leitura de orçamentos.
 
-const DINHEIRO = /(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})(?!\d)/;
+const DINHEIRO = /(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*|\d+),(\d{2,3})(?!\d)/;
+const centavos = (m) => Number(m[1].replace(/\./g, "")) * 100 + Math.round(Number(m[2].padEnd(3, "0")) / 10);
 
-/** "R$ 1.765,90" → 176590. Só aceita valor com vírgula e dois decimais: "1.000 L" não é dinheiro. */
+/** "R$ 1.765,90" → 176590; "464,630" → 46463. Não confunde "1.000 L" com dinheiro. */
 export function lerDinheiro(texto) {
   const m = String(texto ?? "").match(DINHEIRO);
   if (!m) return null;
-  return Number(m[1].replace(/\./g, "")) * 100 + Number(m[2]);
+  return centavos(m);
 }
 
 /** Todos os valores em R$ de um texto, na ordem em que aparecem. */
 export function todosDinheiros(texto) {
-  return [...String(texto ?? "").matchAll(new RegExp(DINHEIRO.source, "g"))].map((m) => Number(m[1].replace(/\./g, "")) * 100 + Number(m[2]));
+  return [...String(texto ?? "").matchAll(new RegExp(DINHEIRO.source, "g"))].map(centavos);
 }
 
 /** Quantidade: "20" → 20, "2,5" → 2.5, "1.000" → 1000. */

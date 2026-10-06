@@ -7,7 +7,7 @@ import { lerDinheiro, lerQuantidade, lerData, semAcentoMaiusculo } from "./numer
 
 const RE_CNPJ = /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g;
 const RE_EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
-const RE_FONE = /(?:\+?55\s*)?\(?\d{2}\)?\s*9?\d{4}[-\s]?\d{4}/;
+const RE_FONE = /(?:\+?55\s*)?\(?\d{2}\)?\s*9?\d{4}[-.\s]?\d{4}/;
 const RE_ENDERECO = /\b(rua|r\.|av\.?|avenida|travessa|tv\.|rodovia|rod\.|estrada|alameda|pra[cç]a|largo)\b|\bCEP\b/i;
 const RE_SUFIXO_LEGAL = /\b(ltda|s\/?a|s\.a\.|eireli|epp|mei|me|ss)\b\.?\s*$/i;
 
@@ -17,7 +17,7 @@ const ROTULOS = {
   frete: /^frete\b\s*:?\s*/i,
   desconto: /^desconto\b(?:\s*\([^)]*\))?\s*:?\s*/i,
   subtotal: /^subtotal\b(?:\s+dos\s+itens)?\s*:?\s*/i,
-  total: /^(?:total\s+geral|valor\s+total|total\s+a\s+pagar|total(?:\s+do\s+(?:or[cç]amento|pedido|proposta))?)\b\s*:?\s*/i,
+  total: /^(?:\(=\)\s*)?(?:total\s+geral|valor\s+total|total\s+a\s+pagar|total\s+c\/\s*desconto|total(?:\s+do\s+(?:or[cç]amento|pedido|proposta))?)\b\s*:?\s*/i,
 };
 const ehRotulo = (texto) => Object.values(ROTULOS).some((r) => r.test(texto));
 
@@ -34,7 +34,7 @@ const formatarFone = (t) => {
 
 /** Faixa do topo, antes do bloco do cliente ou da tabela: é onde mora o fornecedor. */
 function zonaDoFornecedor(linhas) {
-  const fim = linhas.findIndex((l, i) => i > 0 && l.celulas.some((c) => /^(cliente|dados\s+do\s+cliente|destinat[aá]rio|para)\s*:?$/i.test(c.texto)) || (cabecalhoTabela(l) != null));
+  const fim = linhas.findIndex((l, i) => i > 0 && (l.celulas.some((c) => /^(cliente|dados\s+do\s+cliente|destinat[aá]rio|para|nome)\s*:?$/i.test(c.texto)) || cabecalhoTabela(l) != null));
   return fim === -1 ? linhas.slice(0, 12) : linhas.slice(0, fim);
 }
 
@@ -68,12 +68,14 @@ function extrairFornecedor(linhas, largura) {
 
   // Nome fantasia: rótulo explícito ou o texto de maior fonte do canto superior esquerdo (a "marca").
   let fantasia = textoZona.match(/nome\s+fantasia\s*:?\s*(.+)/i)?.[1]?.trim() ?? null;
-  if (!fantasia && esquerda.length) {
-    const alturas = esquerda.map((c) => c.h).sort((a, b) => a - b);
+  const candidatosNome = zona.slice(0, 8).flatMap((l) => l.celulas).filter((c) => !ehDado(c.texto) && !/^(?:or[cç]amento|proposta|cota[cç][aã]o|n[ºo°]|data)\b/i.test(c.texto));
+  if (!fantasia && candidatosNome.length) {
+    const alturas = candidatosNome.map((c) => c.h).sort((a, b) => a - b);
     const mediana = alturas[Math.floor(alturas.length / 2)];
-    const maior = esquerda.reduce((a, c) => (c.h > a.h ? c : a));
-    if (maior.h >= mediana * 1.5 && !ehDado(maior.texto) && maior.texto !== razao) fantasia = maior.texto;
+    const maior = candidatosNome.reduce((a, c) => (c.h > a.h ? c : a));
+    if (maior.h >= mediana * 1.5 && maior.texto !== razao) fantasia = maior.texto;
   }
+  if (!fantasia && !razao) fantasia = candidatosNome.find((c) => /[A-Za-z]{3}/.test(c.texto))?.texto ?? null;
   RE_CNPJ.lastIndex = 0;
 
   return {
@@ -102,11 +104,12 @@ function extrairOrcamento(linhas) {
   let validade = lerData(todo.match(/(?:validade(?:\s+da\s+proposta)?|v[aá]lid[ao]\s+at[eé])\s*:?\s*([\d/.-]{6,10})/i)?.[1] ?? "");
   let validadeDias = null;
   if (!validade) {
-    const d = todo.match(/validade(?:\s+da\s+proposta)?\s*:?\s*(\d{1,3})\s*dias/i)?.[1];
+    const d = todo.match(/validade(?:\s+da\s+proposta)?\s*:?\s*(\d{1,3})\s*(?:dias|dd\b)/i)?.[1];
     if (d) validadeDias = Number(d);
   }
+  const validadeTexto = todo.match(/validade(?:\s+da\s+proposta)?\s*:?\s*(\d{1,3}\s*(?:dias|dd\b)(?:\s+[uú]teis)?)/i)?.[1]?.trim() ?? null;
   const vendedor = limparPontas(todo.match(/(?:vendedor|representante|atendente)\s*:?\s*([^\n]+?)(?:\s{2,}|\n|$)/i)?.[1] ?? "") || null;
-  return { numero, emissao, validade, validadeDias, vendedor };
+  return { numero, emissao, validade, validadeDias, validadeTexto, vendedor };
 }
 
 // ---------- rótulo e valor ----------
@@ -134,17 +137,34 @@ function acharRotulos(linhas, regex) {
   return achados;
 }
 
+/** Totais em coluna separada ou logo abaixo do rótulo, sem confundir com o cabeçalho da tabela. */
+function acharValorMonetario(linhas, regex) {
+  for (let i = linhas.length - 1; i >= 0; i--) {
+    const linha = linhas[i];
+    const k = linha.celulas.findIndex((c) => regex.test(c.texto));
+    if (k < 0) continue;
+    const atual = linha.celulas.slice(k).map((c) => c.texto).join(" ");
+    const valor = lerDinheiro(atual);
+    if (valor != null) return valor;
+    const prox = linhas[i + 1];
+    if (prox?.p === linha.p && prox.y - linha.y < 22) {
+      const c = prox.celulas.find((c) => Math.abs(c.x - linha.celulas[k].x) < 35 && lerDinheiro(c.texto) != null);
+      if (c) return lerDinheiro(c.texto);
+    }
+  }
+  return null;
+}
+
 function extrairCondicoes(linhas) {
   const prazo = acharRotulos(linhas, ROTULOS.prazo).find((a) => a.valor);
-  const pagto = acharRotulos(linhas, ROTULOS.pagamento).find((a) => a.valor);
+  const pagto = acharRotulos(linhas, ROTULOS.pagamento).findLast((a) => a.valor && !/^[=–-]$/.test(a.valor));
   const fretes = acharRotulos(linhas, ROTULOS.frete).filter((a) => a.valor);
   const desconto = acharRotulos(linhas, ROTULOS.desconto).find((a) => a.valor);
-  const subtotal = acharRotulos(linhas, ROTULOS.subtotal).find((a) => a.valor);
-  // "total" sozinho também aparece no cabeçalho da tabela ("VL. TOTAL") e em "Subtotal": só vale o rótulo no início da célula.
-  const total = acharRotulos(linhas, ROTULOS.total).filter((a) => lerDinheiro(a.valor) != null).at(-1);
+  const subtotalCentavos = acharValorMonetario(linhas, /^(?:\(=\)\s*)?subtotal\b/i);
+  const totalCentavos = acharValorMonetario(linhas, ROTULOS.total);
 
   const dias = prazo?.valor.match(/(\d+)\s*dias?/i)?.[1];
-  const diasPagto = pagto?.valor.match(/(\d+)\s*dias?/i)?.[1];
+  const diasPagto = /\d+\s*\/\s*\d+/.test(pagto?.valor ?? "") ? null : pagto?.valor.match(/(\d+)\s*(?:dias?|dd\b)/i)?.[1];
 
   // Frete: o valor com tipo (CIF/FOB) vem das condições; o bloco de totais confirma o valor.
   const comTipo = fretes.find((f) => /\b(CIF|FOB)\b/i.test(f.valor));
@@ -154,17 +174,21 @@ function extrairCondicoes(linhas) {
   const freteValores = fretes.map((f) => lerDinheiro(f.valor)).filter((v) => v != null);
   let freteCentavos = lerDinheiro(freteTexto);
   if (freteCentavos == null && /gr[aá]tis|incluso|sem\s+frete|por\s+nossa\s+conta/i.test(freteTexto)) freteCentavos = 0;
+  if (freteCentavos == null) freteCentavos = acharValorMonetario(linhas, /^(?:\(\+\)\s*)?log[ií]stica\b/i);
+
+  const todo = linhas.map((l) => l.texto).join("\n");
+  const entregaTexto = todo.match(/\bpronta\s+entrega\b/i)?.[0]
+    ?? todo.match(/disponibilidade\s+do\s+material\s*:\s*imediato/i)?.[0] ?? null;
 
   const percentual = desconto?.rotulo.match(/\((\d+(?:,\d+)?)\s*%\)/)?.[1];
   return {
-    prazoEntrega: prazo ? limparPontas(prazo.valor) : null,
+    prazoEntrega: prazo ? limparPontas(prazo.valor) : entregaTexto,
     prazoEntregaDias: dias ? Number(dias) : null,
     pagamento: pagto ? limparPontas(pagto.valor) : null,
     pagamentoDias: diasPagto ? Number(diasPagto) : null,
-    freteTipo, freteCentavos, descontoCentavos: desconto ? lerDinheiro(desconto.valor) : null,
+    freteTipo, freteCentavos, freteTexto: freteTexto || null, descontoCentavos: desconto ? lerDinheiro(desconto.valor) : null,
     descontoPercentual: percentual ? Number(percentual.replace(",", ".")) : null,
-    subtotalCentavos: subtotal ? lerDinheiro(subtotal.valor) : null,
-    totalCentavos: total ? lerDinheiro(total.valor) : null,
+    subtotalCentavos, totalCentavos,
     _fretesVistos: freteValores,
   };
 }
@@ -177,8 +201,9 @@ const CLASSES_CABECALHO = [
   ["codigo", /^(COD|CODIGO|SKU|REF|REFERENCIA)\.?$/],
   ["descricao", /^(DESCRICAO|PRODUTO|MATERIAL|DISCRIMINACAO)/],
   ["unidade", /^(UN|UND|UNID|UNIDADE|UM)\.?$/],
-  ["quantidade", /^(QTD|QTDE|QUANT|QUANTIDADE)\.?$/],
+  ["quantidade", /^(QTD|QTDE|QTE|QUANT|QUANTIDADE)\.?$/],
   ["unitario", /UNIT/],
+  ["unitario", /^VALOR$/],
   ["total", /TOTAL/],
 ];
 
@@ -213,8 +238,11 @@ function itensPorTabela(linhas) {
   let colunas = null;
   const itens = [];
   let anterior = null, yAnterior = 0, paginaAnterior = 0;
-  for (const l of linhas) {
-    const cab = cabecalhoTabela(l);
+  for (let i = 0; i < linhas.length; i++) {
+    const l = linhas[i];
+    const prox = linhas[i + 1];
+    const cab = cabecalhoTabela(l) ?? (prox?.p === l.p && prox.y - l.y < 7
+      ? cabecalhoTabela({ celulas: [...l.celulas, ...prox.celulas] }) : null);
     if (cab) { colunas = cab; anterior = null; continue; }
     if (!colunas) continue;
     if (l.celulas.some((c) => PARADA.test(c.texto)) && !l.celulas.some((c) => colunaDaCelula(c, colunas) === "item" && /^\d+$/.test(c.texto))) { colunas = null; anterior = null; continue; }
@@ -267,6 +295,9 @@ export function interpretarOrcamento(linhas, { largura = 600 } = {}) {
   let itens = itensPorTabela(linhas);
   let metodoItens = "tabela";
   if (!itens.length) { itens = itensPorLinha(linhas); metodoItens = itens.length ? "linhas" : "nenhum"; }
+  if (condicoesLimpas.subtotalCentavos == null && itens.length && itens.every((it) => it.totalCentavos != null)) {
+    condicoesLimpas.subtotalCentavos = itens.reduce((s, it) => s + it.totalCentavos, 0);
+  }
   const orc = extrairOrcamento(linhas);
   return {
     versao: 1,

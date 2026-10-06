@@ -23,7 +23,7 @@
  * @property {string} id
  * @property {string} fornecedorId
  * @property {Object<string,{centavos:number, unidade?:string}>} precos  por id de item; ausente = não cotou
- * @property {number} freteCentavos
+ * @property {number|null} freteCentavos  null = não informado; 0 = confirmado sem custo
  * @property {number|null} prazoEntregaDias
  * @property {{texto:string, dias:number|null}} pagamento
  * @property {string} validade     data ISO

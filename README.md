@@ -1,6 +1,6 @@
 # Suprimo
 
-Cotações do almoxarifado: o auxiliar cota com vários fornecedores, o sistema monta o **mapa comparativo** e o chefe escolhe e assina.
+Cotações do almoxarifado: o auxiliar importa e confere orçamentos, compara as propostas e registra o fornecedor selecionado. O mapa em PDF é apresentado pelo responsável ao **síndico**, que assina a aprovação da cotação. O pedido ao fornecedor é feito depois pelo responsável via WhatsApp, fora do Suprimo.
 Site estático em HTML, CSS e JavaScript puro (ES modules). Sem framework, sem build, sem servidor. Os dados ficam no navegador (IndexedDB).
 
 ## Rodar
@@ -26,7 +26,9 @@ Roteiro de navegador da importação de orçamento (PC e celular), com o site no
 
 ## Importar orçamento
 
-Em uma cotação aberta, aba **Propostas → Importar orçamento (PDF)**. Aceita PDF com texto, até 10 MB; PDF com senha e PDF digitalizado (precisa de OCR, ainda não existe) recebem aviso e param. A leitura roda no navegador, sem API e sem custo. O PDF fica ao lado dos dados para conferência, e nada é salvo antes de **Confirmar orçamento**.
+Em uma cotação aberta, aba **Propostas → Importar orçamento (PDF)**. Aceita PDF com texto, até 10 MB; PDF com senha e PDF digitalizado (precisa de OCR, ainda não existe) recebem aviso e param. Os dois exemplos de orçamento Aquaville têm texto extraível; eles exercitam a leitura de tabelas, preços com três casas decimais, logística, validade relativa e pagamento. A leitura roda no navegador, sem API e sem custo. O PDF fica ao lado dos dados para conferência, e nada é salvo antes de **Confirmar orçamento**.
+
+Frete ausente permanece **não informado** e suspende a sugestão automática de vencedor enquanto uma proposta comparável tiver esse dado pendente (0,00 só quando incluso). A validade expressa em dias é preservada como texto e pede confirmação da data final. Produtos com marcas ou descrições diferentes exigem que a pessoa confirme a correspondência técnica; o Suprimo não declara equivalência por conta própria. O relatório impresso destaca a seleção registrada, reproduz as descrições originais e reserva a assinatura ao síndico. Sem seleção registrada, a impressão sai marcada como rascunho e não traz campo de aprovação.
 
 ## Publicar
 
