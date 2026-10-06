@@ -37,6 +37,15 @@ test("o frete pode trocar o vencedor", () => {
   assert.equal(r.sugestaoId, "B");
 });
 
+test("frete não informado não vira zero nem gera sugestão ou aprovação", () => {
+  const r = comparar([prop("A", { i1: 800, i2: 300 }, { freteCentavos: null }), prop("B", { i1: 1000, i2: 300 })]);
+  assert.equal(r.colunas[0].freteCentavos, null);
+  assert.equal(r.colunas[0].fretePendente, true);
+  assert.equal(r.sugestaoId, null);
+  assert.match(problemasDaDecisao(r, { modo: "unico", propostaId: "A" })[0], /Confirme o valor do frete/);
+  assert.equal(resumirDecisao(r, { modo: "porItem", porItem: { i1: "A", i2: "B" } }).completo, false);
+});
+
 test("empate no custo total vai para o menor prazo de entrega", () => {
   const r = comparar([
     prop("A", { i1: 1000, i2: 300 }, { prazoEntregaDias: 7 }),

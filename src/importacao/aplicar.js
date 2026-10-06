@@ -51,9 +51,9 @@ export function montarImportacao({ cotacao, dados, correspondencia, fornecedores
   const anexoId = novoId();
   const proposta = {
     id: propostaId, fornecedorId: fornecedor.id, precos,
-    freteCentavos: c.freteCentavos ?? 0, freteTipo: c.freteTipo ?? "", descontoCentavos: c.descontoCentavos ?? 0,
+    freteCentavos: c.freteCentavos, freteTipo: c.freteTipo ?? "", freteTexto: c.freteTexto ?? "", descontoCentavos: c.descontoCentavos ?? 0,
     prazoEntregaDias: c.prazoEntregaDias ?? null, prazoEntregaTexto: c.prazoEntrega ?? "",
-    pagamento: { texto: c.pagamento ?? "", dias: c.pagamentoDias ?? null }, validade: o.validade ?? "", observacao: "",
+    pagamento: { texto: c.pagamento ?? "", dias: c.pagamentoDias ?? null }, validade: o.validade ?? "", validadeTexto: o.validadeTexto ?? "", observacao: "",
     anexos: [{ id: anexoId, nome: arquivo.nome, tipo: arquivo.tipo || "application/pdf", tamanho: arquivo.tamanho }],
     status: "confirmada", origem: "importada", documentoId,
     orcamento: { numero: o.numero ?? "", emissao: o.emissao ?? "", vendedor: o.vendedor ?? "", subtotalCentavos: c.subtotalCentavos ?? null, totalCentavos: c.totalCentavos ?? null, itens: linhas },

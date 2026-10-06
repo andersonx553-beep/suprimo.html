@@ -54,7 +54,7 @@ export function telaCotacao(raiz, { store, rota }) {
         </div>
         <div class="cotacao__acoes">
           ${passo && passo.aba !== rota.aba ? html`<button class="botao botao--primario" data-passo>${passo.rotulo}${icone("seta", 16)}</button>` : ""}
-          ${encerrada ? "" : html`<a class="botao" href="${linkImportar(cot.numero)}" data-importar>${icone("subir", 16)}Importar orçamento (PDF)</a>`}
+          ${encerrada ? "" : html`<a class="botao" href="${linkImportar(cot.numero)}" data-importar>${icone("subir", 16)}Importar orçamento</a>`}
           <button class="botao-icone botao-icone--caixa" data-editar aria-label="Editar dados da cotação" title="Editar dados">${icone("editar")}</button>
           <button class="botao-icone botao-icone--caixa" data-duplicar aria-label="Duplicar cotação" title="Duplicar">${icone("duplicar")}</button>
           ${cot.status === "cancelada" ? html`<button class="botao" data-voltar>Reativar como rascunho</button>` : html`<button class="botao-icone botao-icone--caixa" data-cancelar aria-label="Cancelar cotação" title="Cancelar cotação">${icone("fechar")}</button>`}
@@ -84,8 +84,9 @@ export function telaCotacao(raiz, { store, rota }) {
   const limparAba = ligarAba?.(painel, ctx);
   raiz.querySelectorAll('[data-acao="imprimir"]').forEach((b) => b.addEventListener("click", () => window.print()));
 
-  raiz.querySelector("[data-passo]")?.addEventListener("click", () => {
+  raiz.querySelector("[data-passo]")?.addEventListener("click", async () => {
     if (passo.aba) return ir(base(passo.aba));
+    if (passo.para === "concluida" && !(await confirmar({ titulo: "A cotação foi aprovada pelo síndico?", texto: "Registre a conclusão após receber o mapa assinado. O pedido ao fornecedor é feito fora do Suprimo.", rotulo: "Registrar aprovação" }))) return;
     store.atualizarCotacao(cot.id, (c) => { c.status = passo.para; if (passo.para === "concluida") c.concluidaEm = new Date().toISOString(); });
     if (passo.para === "em_analise") ir(base("mapa"));
   });

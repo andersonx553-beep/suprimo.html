@@ -26,6 +26,7 @@ export function tabelaMapa(res, fornecedores) {
         ${c.sugerida ? html`<span class="selo" data-tom="ok">Sugerida</span>` : ""}
         ${c.incompleta ? html`<span class="selo" data-tom="neutro">Incompleta</span>` : ""}
         ${c.unidadeDiferente ? html`<span class="selo" data-tom="aviso">Unidade diferente</span>` : ""}
+        ${c.fretePendente ? html`<span class="selo" data-tom="aviso">Frete pendente</span>` : ""}
         ${c.vencida ? html`<span class="selo" data-tom="perigo">Vencida</span>` : ""}
       </span>
     </th>`);
@@ -46,11 +47,11 @@ export function tabelaMapa(res, fornecedores) {
       <tfoot>
         ${rodape("Subtotal dos itens", (c) => reais(c.subtotal))}
         ${res.colunas.some((c) => c.descontoCentavos) ? rodape("Desconto", (c) => (c.descontoCentavos ? `− ${reais(c.descontoCentavos)}` : "—")) : ""}
-        ${rodape("Frete", (c) => (c.freteCentavos ? reais(c.freteCentavos) : "sem frete"))}
-        ${rodape("Custo total", (c) => html`<strong>${reais(c.custoTotal)}</strong>${c.incompleta ? html`<span class="mapa__sub">faltam itens</span>` : c.unidadeDiferente ? html`<span class="mapa__sub">parcial: unidade diferente</span>` : ""}`, "total")}
+        ${rodape("Frete", (c) => html`${c.fretePendente ? "não informado" : reais(c.freteCentavos)}${c.freteTexto ? html`<span class="mapa__sub">${c.freteTexto}</span>` : ""}`)}
+        ${rodape("Custo total", (c) => html`<strong>${c.fretePendente ? "a confirmar" : reais(c.custoTotal)}</strong>${c.incompleta ? html`<span class="mapa__sub">faltam itens</span>` : c.unidadeDiferente ? html`<span class="mapa__sub">parcial: unidade diferente</span>` : ""}`, "total")}
         ${rodape("Prazo de entrega", (c) => (c.prazoEntregaDias != null ? `${c.prazoEntregaDias} ${c.prazoEntregaDias === 1 ? "dia" : "dias"}` : "—"))}
         ${rodape("Pagamento", (c) => c.pagamento || "—")}
-        ${rodape("Validade", (c) => html`${dataBr(c.validade)}${c.vencida ? html`<span class="mapa__sub">vencida</span>` : ""}`)}
+        ${rodape("Validade", (c) => html`${c.validade ? dataBr(c.validade) : c.validadeTexto || "—"}${c.vencida ? html`<span class="mapa__sub">vencida</span>` : ""}`)}
       </tfoot>
     </table>`;
 }
@@ -65,5 +66,8 @@ export function avisosDoMapa(res) {
   if (diferentes) avisos.push(`${diferentes} ${diferentes === 1 ? "proposta usa" : "propostas usam"} unidade diferente da pedida em algum item: esse preço não entra na comparação.`);
   const vencidas = res.colunas.filter((c) => c.vencida).length;
   if (vencidas) avisos.push(`${vencidas} ${vencidas === 1 ? "proposta com validade vencida" : "propostas com validade vencida"}. Confirme o preço com o fornecedor.`);
+  const semFrete = res.colunas.filter((c) => c.fretePendente).length;
+  if (semFrete) avisos.push(`${semFrete} ${semFrete === 1 ? "proposta sem valor de frete" : "propostas sem valor de frete"}. O custo final depende da confirmação do frete.`);
+  if (res.colunas.some((c) => c.validadeTexto && !c.validade)) avisos.push("Há validade expressa em dias, sem data final confirmada. Confira se as propostas continuam válidas.");
   return avisos;
 }

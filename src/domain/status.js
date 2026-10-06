@@ -17,7 +17,7 @@ const AVANCOS = {
   rascunho: { para: "aguardando_propostas", rotulo: "Iniciar coleta de propostas" },
   aguardando_propostas: { para: "em_analise", rotulo: "Começar a análise" },
   em_analise: { aba: "decisao", rotulo: "Ir para a decisão" },
-  decidida: { para: "concluida", rotulo: "Marcar como concluída" },
+  decidida: { para: "concluida", rotulo: "Registrar aprovação recebida" },
 };
 export const proximoPasso = (status) => AVANCOS[status] ?? null;
 

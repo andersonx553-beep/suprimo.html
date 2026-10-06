@@ -26,14 +26,23 @@ export function camposFaltando(d) {
 }
 
 /** @returns {Alerta[]} */
-export function validarOrcamento(d, { hoje }) {
+export function validarOrcamento(d, { hoje, nomeArquivo = "" }) {
   /** @type {Alerta[]} */
   const alertas = [];
   const add = (id, nivel, campo, mensagem) => alertas.push({ id, nivel, campo, mensagem });
   const f = d.fornecedor ?? {}, o = d.orcamento ?? {}, c = d.condicoes ?? {}, itens = d.itens ?? [];
 
+  if (d.diagnostico?.metodo === "ocr") add("ocr-conferencia", "aviso", "itens", "Leitura por OCR: confira no arquivo original fornecedor, códigos, descrições, quantidades, preços, frete e total. O OCR pode trocar letras ou dígitos mesmo quando as contas fecham.");
+
   if (f.cnpj && !cnpjValido(f.cnpj)) add("cnpj", "erro", "fornecedor.cnpj", "O CNPJ não passa na conferência dos dígitos verificadores. Confira com o PDF.");
-  if (!itens.length) add("sem-itens", "erro", "itens", "Nenhum item foi encontrado. Adicione os itens à mão ou confira se o PDF é o orçamento certo.");
+  if (!itens.length) add("sem-itens", "erro", "itens", "Nenhum item foi encontrado. Adicione os itens à mão ou confira se o arquivo é o orçamento certo.");
+  if (c.freteCentavos == null) add("frete-pendente", "aviso", "condicoes.freteCentavos", "O frete não foi informado. Confirme com o fornecedor antes de comparar o custo final; informe R$ 0,00 apenas se for incluso.");
+  if (!o.validade && o.validadeTexto) add("validade-relativa", "aviso", "orcamento.validade", `Validade informada como ${o.validadeTexto}; confirme até quando a proposta vale.`);
+  const numeroArquivo = nomeArquivo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/(?:cotacao|proposta|orcamento)\s*(?:n[ºo.]*)?[\s._-]*(\d{2,7})/i)?.[1];
+  const numeroDocumento = String(o.numero ?? "").match(/\d{2,7}/)?.[0];
+  if (numeroArquivo && numeroDocumento && Number(numeroArquivo) !== Number(numeroDocumento)) {
+    add("numero-arquivo", "aviso", "orcamento.numero", `O arquivo indica nº ${numeroArquivo}, mas o documento mostra nº ${o.numero}. Confira com o fornecedor.`);
+  }
 
   itens.forEach((it, i) => {
     const n = it.numero ?? i + 1;
@@ -51,7 +60,7 @@ export function validarOrcamento(d, { hoje }) {
   if (itens.length && c.subtotalCentavos != null && Math.abs(somaItens - c.subtotalCentavos) > TOLERANCIA) {
     add("subtotal", "erro", "condicoes.subtotalCentavos", `A soma dos itens (${reais(somaItens)}) é diferente do subtotal do documento (${reais(c.subtotalCentavos)}).`);
   }
-  if (c.subtotalCentavos != null && c.totalCentavos != null) {
+  if (c.subtotalCentavos != null && c.totalCentavos != null && c.freteCentavos != null) {
     const esperado = c.subtotalCentavos - (c.descontoCentavos ?? 0) + (c.freteCentavos ?? 0);
     if (Math.abs(esperado - c.totalCentavos) > TOLERANCIA) {
       add("total", "erro", "condicoes.totalCentavos", `Subtotal ${reais(c.subtotalCentavos)} − desconto ${reais(c.descontoCentavos ?? 0)} + frete ${reais(c.freteCentavos ?? 0)} = ${reais(esperado)}, mas o total lido é ${reais(c.totalCentavos)}.`);

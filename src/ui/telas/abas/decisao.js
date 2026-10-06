@@ -6,6 +6,7 @@ import { melhorPorItem } from "../../../domain/mapa.js";
 import { resumirDecisao, justificativaObrigatoria, problemasDaDecisao } from "../../../domain/decisao.js";
 import { avisar } from "../../componentes/aviso.js";
 import { estadoVazio } from "../../componentes/pecas.js";
+import { confirmar } from "../../componentes/dialogo.js";
 
 const decisaoVazia = () => ({ modo: "unico", propostaId: "", porItem: {}, justificativa: "", decididaEm: "" });
 
@@ -24,7 +25,7 @@ export function abaDecisao({ cot, res, forn }) {
   const unico = html`
     <label class="campo-rotulado">Fornecedor vencedor
       <select class="campo" data-vencedor><option value="">Escolha…</option>${res.colunas.map((c) => html`
-        <option value="${c.propostaId}" ${d.propostaId === c.propostaId ? "selected" : ""}>${nome(c.fornecedorId)} · ${reais(c.custoTotal)}${c.sugerida ? " (sugerida)" : ""}${c.incompleta ? " (incompleta)" : ""}${c.unidadeDiferente ? " (unidade diferente)" : ""}</option>`)}</select></label>
+        <option value="${c.propostaId}" ${d.propostaId === c.propostaId ? "selected" : ""}>${nome(c.fornecedorId)} · ${c.fretePendente ? "frete a confirmar" : reais(c.custoTotal)}${c.sugerida ? " (sugerida)" : ""}${c.incompleta ? " (incompleta)" : ""}${c.unidadeDiferente ? " (unidade diferente)" : ""}</option>`)}</select></label>
     ${sugerida && d.propostaId !== sugerida.propostaId ? html`<button class="botao botao--peq" data-usar-sugerida>${icone("trofeu", 14)}Usar a sugerida</button>` : ""}`;
 
   const porItem = html`
@@ -36,7 +37,7 @@ export function abaDecisao({ cot, res, forn }) {
             ${res.colunas.filter((c) => c.celulas[i].estado === "ok").map((c) => html`<option value="${c.propostaId}" ${d.porItem?.[item.id] === c.propostaId ? "selected" : ""}>${nome(c.fornecedorId)} · ${reais(c.celulas[i].centavos)}</option>`)}</select></td>
           <td class="tabela__num" data-rotulo="Total">${escolha ? reais(escolha.total) : "—"}</td></tr>`;
       })}</tbody></table></div>
-    ${resumo.divisao?.escolhas.length ? html`<p class="decisao__soma">Itens ${reais(resumo.divisao.totalItens)} + frete ${reais(resumo.divisao.totalFrete)} (${resumo.divisao.fretes.length} ${resumo.divisao.fretes.length === 1 ? "fornecedor" : "fornecedores"}) = <strong>${reais(resumo.divisao.custoTotal)}</strong></p>` : ""}
+    ${resumo.divisao?.escolhas.length ? html`<p class="decisao__soma">Itens ${reais(resumo.divisao.totalItens)} + frete ${resumo.divisao.fretePendente ? "a confirmar" : reais(resumo.divisao.totalFrete)} (${resumo.divisao.fretes.length} ${resumo.divisao.fretes.length === 1 ? "fornecedor" : "fornecedores"}) = <strong>${resumo.divisao.fretePendente ? "a confirmar" : reais(resumo.divisao.custoTotal)}</strong></p>` : ""}
     <button class="botao botao--peq" data-melhor-por-item>${icone("camadas", 14)}Usar o menor preço de cada item</button>`;
 
   const decididaBanner = travada && cot.status !== "cancelada" ? html`
@@ -45,20 +46,20 @@ export function abaDecisao({ cot, res, forn }) {
   return html`
     ${decididaBanner}
     <fieldset class="decisao" ${travada ? "disabled" : ""}>
-      <div class="decisao__modo" role="radiogroup" aria-label="Como comprar">
+      <div class="decisao__modo" role="radiogroup" aria-label="Como selecionar fornecedores">
         <label><input type="radio" name="modo" value="unico" ${d.modo !== "porItem" ? "checked" : ""}>Um fornecedor para tudo</label>
         <label><input type="radio" name="modo" value="porItem" ${d.modo === "porItem" ? "checked" : ""}>Um fornecedor por item</label>
       </div>
       ${d.modo === "porItem" ? porItem : unico}
-      <p class="decisao__total" data-completo="${String(resumo.completo)}">${resumo.completo ? html`Custo total da compra: <strong>${reais(resumo.custoTotal)}</strong>` : "Escolha o vencedor para fechar o total."}</p>
+      <p class="decisao__total" data-completo="${String(resumo.completo)}">${resumo.completo ? html`Custo total da cotação selecionada: <strong>${reais(resumo.custoTotal)}</strong>` : "Escolha o vencedor e confirme o frete para fechar o total."}</p>
       <label class="campo-rotulado">Justificativa ${obrigatoria ? html`<span class="selo" data-tom="aviso">Obrigatória: não é o menor custo total</span>` : html`<span class="campo-rotulado__opcional">(opcional)</span>`}
         <textarea class="campo" data-justificativa rows="3" placeholder="Por que esta escolha? Ex.: entrega mais rápida, fornecedor já conhecido, único com todos os itens.">${d.justificativa}</textarea></label>
     </fieldset>
     <div class="acoes-linha acoes-linha--rodape">
-      <button class="botao" data-acao="imprimir">${icone("imprimir", 16)}Gerar mapa para assinatura</button>
+      <button class="botao" data-acao="imprimir">${icone("imprimir", 16)}Gerar mapa para aprovação do síndico</button>
       <span class="espaco"></span>
       ${cot.status === "decidida" || cot.status === "concluida" ? html`<button class="botao" data-reabrir>Reabrir análise</button>` : ""}
-      ${cot.status === "decidida" ? html`<button class="botao botao--primario" data-concluir>${icone("ok", 16)}Marcar como concluída</button>` : ""}
+      ${cot.status === "decidida" ? html`<button class="botao botao--primario" data-concluir>${icone("ok", 16)}Registrar aprovação recebida</button>` : ""}
       ${!travada ? html`<button class="botao botao--primario" data-registrar>${icone("ok", 16)}Registrar decisão</button>` : ""}
     </div>`;
 }
@@ -81,8 +82,11 @@ export function ligarDecisao(raiz, ctx) {
     const problemas = problemasDaDecisao(res, atual);
     if (problemas.length) { editar((c) => { c.decisao.justificativa = texto; }); avisar(problemas[0]); return; }
     editar((c) => { c.decisao.justificativa = texto; c.decisao.decididaEm = new Date().toISOString(); c.status = "decidida"; });
-    avisar("Decisão registrada. Gere o mapa para o chefe assinar.");
+    avisar("Fornecedor selecionado. Gere o mapa para o síndico aprovar por assinatura.");
   });
-  raiz.querySelector("[data-concluir]")?.addEventListener("click", () => editar((c) => { c.status = "concluida"; c.concluidaEm = new Date().toISOString(); }));
+  raiz.querySelector("[data-concluir]")?.addEventListener("click", async () => {
+    if (!(await confirmar({ titulo: "A cotação foi aprovada pelo síndico?", texto: "Registre a conclusão após receber o mapa assinado. O pedido ao fornecedor é feito fora do Suprimo.", rotulo: "Registrar aprovação" }))) return;
+    editar((c) => { c.status = "concluida"; c.concluidaEm = new Date().toISOString(); });
+  });
   raiz.querySelector("[data-reabrir]")?.addEventListener("click", () => editar((c) => { c.status = "em_analise"; c.concluidaEm = ""; }));
 }

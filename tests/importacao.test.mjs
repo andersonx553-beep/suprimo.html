@@ -18,6 +18,8 @@ const ler = (trechos) => interpretarOrcamento(montarLinhas(trechos), { largura: 
 
 test("números brasileiros: R$, milhar, decimais e o que NÃO é dinheiro", () => {
   assert.equal(lerDinheiro("R$ 1.765,90"), 176590);
+  assert.equal(lerDinheiro("R$ 464,630"), 46463);
+  assert.equal(lerDinheiro("R$ 1,005"), 101);
   assert.equal(lerDinheiro("– R$ 88,30"), 8830);
   assert.equal(lerDinheiro("1.000 L"), null);
   assert.equal(lerDinheiro("1.000"), null);
@@ -67,6 +69,41 @@ test("frete grátis e desconto sem traço", () => {
   assert.deepEqual([r.condicoes.freteTipo, r.condicoes.freteCentavos, r.condicoes.descontoCentavos, r.condicoes.descontoPercentual, r.condicoes.totalCentavos], ["CIF", 0, 10000, 10, 90000]);
 });
 
+test("cabeçalho em duas linhas, QTE e validade em DD úteis", () => {
+  const r = interpretarOrcamento(montarLinhas([
+    t(20, 220, "Fornecedor Exemplo Ltda", 140), t(20, 530, "N°", 10), t(20, 600, "951/2026", 40),
+    t(30, 520, "DATA", 20), t(30, 600, "30/09/2026", 45),
+    t(100, 80, "DESCRIÇÃO", 50), t(100, 500, "VALOR", 30),
+    t(104, 60, "ITEM", 20), t(104, 417, "UNID.", 20), t(104, 450, "QTE.", 20), t(104, 580, "TOTAL", 30),
+    t(116, 68, "1", 5), t(116, 83, "Manta 3MM", 110), t(116, 414, "UNID.", 19),
+    t(116, 440, "24,00", 17), t(116, 481, "R$", 9), t(116, 529, "275,00", 23),
+    t(116, 557, "R$", 9), t(116, 600, "6.600,00", 30),
+    t(180, 530, "TOTAL R$", 40), t(180, 593, "6.600,00", 38),
+    t(200, 60, "Validade da Proposta:", 90), t(200, 183, "10 DD ÚTEIS", 60),
+  ]), { largura: 842 });
+  assert.deepEqual([r.itens.length, r.itens[0].quantidade, r.itens[0].unitarioCentavos, r.itens[0].totalCentavos], [1, 24, 27500, 660000]);
+  assert.deepEqual([r.condicoes.subtotalCentavos, r.condicoes.totalCentavos, r.orcamento.validadeTexto], [660000, 660000, "10 DD ÚTEIS"]);
+});
+
+test("preço com três casas, logística zero e pagamento em observação", () => {
+  const r = ler([
+    t(20, 390, "EMPRESA MATRIZ", 90), t(100, 18, "ORÇAMENTO Nº.: 48401", 130), t(100, 304, "Emissão: 29/09/2026", 110),
+    t(200, 16, "Código", 25), t(200, 51, "Descrição dos produtos", 90), t(200, 310, "Und", 16), t(200, 337, "Qtde", 19),
+    t(200, 375, "Vlr Unitário", 43), t(200, 424, "Desc. Unit.", 42), t(200, 474, "Vlr. c/ Desc.", 45), t(200, 529, "Total c/ Desc.", 52),
+    t(212, 16, "021369", 27), t(212, 51, "Manta ALU 4MM", 170), t(212, 312, "UN", 11), t(212, 341, "34", 10),
+    t(212, 374, "R$ 464,630", 41), t(212, 431, "R$ 0,000", 33), t(212, 476, "R$ 464,630", 41), t(212, 530, "R$ 15.797,42", 49),
+    t(245, 537, "SUBTOTAL", 45), t(260, 526, "R$ 15.797,42", 52),
+    t(275, 414, "(+) Logística:", 55), t(275, 548, "R$ 0,00", 31),
+    t(290, 378, "(=) Total c/ Desconto:", 92), t(290, 518, "R$ 15.797,42", 61),
+    t(320, 97, "FRETE CIF(FORTALEZA).", 130),
+    t(340, 97, "FORMA DE PAGAMENTO:", 114), t(340, 217, "BOLETO BANCÁRIO 30 DD", 126),
+    t(360, 97, "VALIDADE DA PROPOSTA: 05 DIAS", 180),
+  ]);
+  assert.deepEqual([r.itens[0].unitarioCentavos, r.itens[0].totalCentavos, r.condicoes.freteCentavos, r.condicoes.totalCentavos], [46463, 1579742, 0, 1579742]);
+  assert.equal(r.condicoes.pagamento, "BOLETO BANCÁRIO 30 DD");
+  assert.equal(r.condicoes.freteTexto, "CIF(FORTALEZA).");
+});
+
 // ---- validações ----
 const base = () => ({
   fornecedor: { razaoSocial: "X Ltda", cnpj: "34582117000142" },
@@ -90,6 +127,12 @@ test("validação: validade anterior à emissão e orçamento vencido", () => {
   assert.ok(!ids(v, "2026-10-20").includes("vencido"));
 });
 test("validação: CNPJ com dígitos errados", () => { const d = ok(); d.fornecedor.cnpj = "34582117000143"; assert.ok(ids(d).includes("cnpj")); });
+test("número do arquivo diferente do documento gera aviso sem trocar o número lido", () => {
+  const d = ok(); d.orcamento.numero = "951/2026";
+  const alertas = validarOrcamento(d, { hoje: "2026-10-05", nomeArquivo: "COTAÇÃO 952 AQUAVILLE.pdf" });
+  assert.ok(alertas.some((a) => a.id === "numero-arquivo"));
+  assert.equal(d.orcamento.numero, "951/2026");
+});
 test("campos não encontrados são listados para destacar", () => {
   const d = ok(); d.orcamento.numero = null; d.condicoes.prazoEntrega = "";
   assert.deepEqual(camposFaltando(d).sort(), ["condicoes.prazoEntrega", "orcamento.numero"]);

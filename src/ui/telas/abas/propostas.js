@@ -24,7 +24,7 @@ export function abaPropostas({ cot, forn, ultimo }) {
   const atual = cot.propostas.find((p) => p.id === selecionada.get(cot.id)) ?? cot.propostas[0] ?? null;
   if (atual) selecionada.set(cot.id, atual.id);
 
-  const botaoImportar = html`<a class="botao" href="${linkImportar(cot.numero)}" ${bloqueada ? 'aria-disabled="true" tabindex="-1"' : ""}>${icone("subir", 16)}Importar orçamento (PDF)</a>`;
+  const botaoImportar = html`<a class="botao" href="${linkImportar(cot.numero)}" ${bloqueada ? 'aria-disabled="true" tabindex="-1"' : ""}>${icone("subir", 16)}Importar orçamento</a>`;
   const seletor = html`
     <div class="seletor-proposta" role="tablist" aria-label="Propostas">
       ${cot.propostas.map((p) => html`<button class="seletor-proposta__item" role="tab" aria-selected="${String(p.id === atual?.id)}" data-escolher="${p.id}">${avatar(forn.get(p.fornecedorId)?.nome ?? "?")}<span>${forn.get(p.fornecedorId)?.nome ?? "Fornecedor removido"}</span></button>`)}
@@ -62,7 +62,7 @@ export function abaPropostas({ cot, forn, ultimo }) {
           ${atual.origem === "importada" ? html`<p class="faixa" data-tom="info">${icone("arquivo", 16)}<span>Importada do orçamento <strong>${atual.orcamento?.numero || "sem número"}</strong>${atual.orcamento?.emissao ? ` de ${dataBr(atual.orcamento.emissao)}` : ""}. Confirmada.</span></p>` : ""}
           <div class="tabela-quadro"><table class="tabela tabela--lista tabela--proposta"><thead><tr><th>Item</th><th>Preço unitário</th><th>Un.</th><th>Total</th></tr></thead><tbody>${linhas}</tbody></table></div>
           <div class="formulario__grade">
-            <label class="campo-rotulado">Frete (R$)<input class="campo campo--num" data-campo="frete" inputmode="decimal" value="${reaisCampo(atual.freteCentavos || null)}" placeholder="0,00"></label>
+            <label class="campo-rotulado">Frete (R$)<input class="campo campo--num" data-campo="frete" inputmode="decimal" value="${reaisCampo(atual.freteCentavos)}" placeholder="Não informado"></label>
             <label class="campo-rotulado">Prazo de entrega (dias)<input class="campo campo--num" data-campo="prazoEntregaDias" type="number" min="0" value="${atual.prazoEntregaDias ?? ""}"></label>
             <label class="campo-rotulado">Validade da proposta<input class="campo" data-campo="validade" type="date" value="${atual.validade}"></label>
           </div>
@@ -74,6 +74,9 @@ export function abaPropostas({ cot, forn, ultimo }) {
             <label class="campo-rotulado">Pagamento<input class="campo" data-campo="pagamentoTexto" value="${atual.pagamento?.texto ?? ""}" placeholder="Boleto, à vista, cartão…"></label>
             <label class="campo-rotulado">Prazo de pagamento (dias)<input class="campo campo--num" data-campo="pagamentoDias" type="number" min="0" value="${atual.pagamento?.dias ?? ""}"></label>
           </div>
+          ${atual.freteCentavos == null ? html`<p class="faixa" data-tom="aviso">Confirme o frete antes de concluir a cotação. Se estiver incluso, preencha 0,00.</p>` : ""}
+          ${atual.freteTexto ? html`<p class="cartao__nota">Frete no orçamento: ${atual.freteTexto}. Confirme se cobre o destino.</p>` : ""}
+          ${atual.validadeTexto ? html`<p class="cartao__nota">Validade no orçamento: ${atual.validadeTexto} a partir da emissão.</p>` : ""}
           <label class="campo-rotulado">Observação<textarea class="campo" data-campo="observacao" rows="2">${atual.observacao}</textarea></label>
           <div class="acoes-linha"><button class="botao botao--perigo" data-remover-proposta>${icone("lixeira", 16)}Remover esta proposta</button></div>
         </div>
@@ -113,6 +116,7 @@ export function ligarPropostas(raiz, ctx) {
 
   form.querySelectorAll("[data-campo]").forEach((el) => el.addEventListener("change", () => {
     const campo = el.dataset.campo, tr = el.closest("tr[data-item]");
+    if (campo === "frete" && el.value.trim() && lerCentavos(el.value) == null) { avisar("Frete inválido. Use o formato 0,00 ou deixe em branco para não informado."); el.focus(); return; }
     if (tr) {
       const item = cot.itens.find((i) => i.id === tr.dataset.item);
       const pr = tr.querySelector('[data-campo="preco"]'), un = tr.querySelector('[data-campo="unidade"]');
@@ -130,7 +134,7 @@ export function ligarPropostas(raiz, ctx) {
     }
     editar((c) => {
       const p = c.propostas.find((x) => x.id === atualId);
-      if (campo === "frete") { const v = lerCentavos(el.value); p.freteCentavos = v ?? 0; el.value = reaisCampo(v); }
+      if (campo === "frete") { const v = lerCentavos(el.value); p.freteCentavos = v; el.value = reaisCampo(v); }
       else if (campo === "desconto") { const v = lerCentavos(el.value); p.descontoCentavos = v ?? 0; el.value = reaisCampo(v); }
       else if (campo === "prazoEntregaDias") p.prazoEntregaDias = el.value === "" ? null : Math.max(0, Number(el.value));
       else if (campo === "pagamentoTexto") p.pagamento = { ...p.pagamento, texto: el.value.trim() };

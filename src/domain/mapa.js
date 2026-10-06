@@ -19,9 +19,9 @@ export const chaveItem = (descricao) => semAcento(descricao).toLowerCase().repla
  * @typedef {Object} Coluna
  * @property {string} propostaId @property {string} fornecedorId
  * @property {Celula[]} celulas
- * @property {number} subtotal @property {number} descontoCentavos @property {number} freteCentavos @property {number} custoTotal
+ * @property {number} subtotal @property {number} descontoCentavos @property {number|null} freteCentavos @property {number} custoTotal
  * @property {number|null} prazoEntregaDias @property {string} pagamento @property {string} validade
- * @property {boolean} incompleta @property {boolean} unidadeDiferente @property {boolean} vencida
+ * @property {boolean} incompleta @property {boolean} unidadeDiferente @property {boolean} vencida @property {boolean} fretePendente
  * @property {boolean} elegivel @property {boolean} sugerida
  */
 
@@ -39,7 +39,7 @@ export function compararCotacao(cotacao, { hoje, minPropostas = 3, ultimoPreco =
     const subtotal = celulas.reduce((s, c) => s + (c.estado === "ok" ? c.total : 0), 0);
     const naoCotou = celulas.filter((c) => c.estado === "naoCotou").length;
     const divergentes = celulas.filter((c) => c.estado === "unidadeDivergente").length;
-    const frete = p.freteCentavos || 0;
+    const frete = p.freteCentavos ?? null;
     const desconto = p.descontoCentavos || 0;
     return {
       propostaId: p.id,
@@ -48,14 +48,17 @@ export function compararCotacao(cotacao, { hoje, minPropostas = 3, ultimoPreco =
       subtotal,
       freteCentavos: frete,
       descontoCentavos: desconto,
-      custoTotal: subtotal - desconto + frete,
+      custoTotal: subtotal - desconto + (frete ?? 0),
+      fretePendente: frete == null,
+      freteTexto: p.freteTexto || "",
+      validadeTexto: p.validadeTexto || "",
       prazoEntregaDias: p.prazoEntregaDias ?? null,
       pagamento: [p.pagamento?.texto, p.pagamento?.dias != null ? `${p.pagamento.dias} dias` : ""].filter(Boolean).join(" · "),
       validade: p.validade || "",
       incompleta: naoCotou > 0,
       unidadeDiferente: divergentes > 0,
       vencida: !!p.validade && p.validade < hoje,
-      elegivel: itens.length > 0 && naoCotou === 0 && divergentes === 0,
+      elegivel: itens.length > 0 && naoCotou === 0 && divergentes === 0 && frete != null,
       sugerida: false,
     };
   });
@@ -69,7 +72,8 @@ export function compararCotacao(cotacao, { hoje, minPropostas = 3, ultimoPreco =
   });
 
   // Sugestão: menor custo total entre as completas; empate vai para o menor prazo de entrega.
-  const candidatas = colunas.filter((c) => c.elegivel)
+  const haFretePendenteComparavel = colunas.some((c) => !c.incompleta && !c.unidadeDiferente && c.fretePendente);
+  const candidatas = (haFretePendenteComparavel ? [] : colunas.filter((c) => c.elegivel))
     .sort((a, b) => a.custoTotal - b.custoTotal || (a.prazoEntregaDias ?? Infinity) - (b.prazoEntregaDias ?? Infinity));
   const sugestaoId = candidatas[0]?.propostaId ?? null;
   colunas.forEach((c) => { c.sugerida = c.propostaId === sugestaoId; });
@@ -110,8 +114,9 @@ export function calcularDivisao(resultado, porItem) {
     fretes.set(col.propostaId, { propostaId: col.propostaId, fornecedorId: col.fornecedorId, freteCentavos: col.freteCentavos });
   });
   const listaFretes = [...fretes.values()];
-  const totalFrete = listaFretes.reduce((s, f) => s + f.freteCentavos, 0);
-  return { escolhas, fretes: listaFretes, totalItens, totalFrete, custoTotal: totalItens + totalFrete, faltaEscolher };
+  const fretePendente = listaFretes.some((f) => f.freteCentavos == null);
+  const totalFrete = listaFretes.reduce((s, f) => s + (f.freteCentavos ?? 0), 0);
+  return { escolhas, fretes: listaFretes, totalItens, totalFrete, custoTotal: totalItens + totalFrete, faltaEscolher, fretePendente };
 }
 
 /** Ponto de partida da compra dividida: o menor preço comparável de cada item. */
