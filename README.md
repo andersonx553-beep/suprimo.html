@@ -26,7 +26,7 @@ Roteiro de navegador da importação de orçamento (PC e celular), com o site no
 
 ## Importar orçamento
 
-Em uma cotação aberta, aba **Propostas → Importar orçamento (PDF)**. Aceita PDF com texto, até 10 MB; PDF com senha e PDF digitalizado (precisa de OCR, ainda não existe) recebem aviso e param. Os dois exemplos de orçamento Aquaville têm texto extraível; eles exercitam a leitura de tabelas, preços com três casas decimais, logística, validade relativa e pagamento. A leitura roda no navegador, sem API e sem custo. O PDF fica ao lado dos dados para conferência, e nada é salvo antes de **Confirmar orçamento**.
+Em uma cotação aberta, aba **Propostas → Importar orçamento**. Aceita PDF, JPG e PNG, até 10 MB. PDFs com texto usam extração direta; PDFs digitalizados e imagens usam OCR com Tesseract.js no navegador (até 12 páginas). Na primeira leitura por OCR, o navegador baixa o núcleo WASM e os idiomas português/inglês; precisa de conexão. O arquivo é processado localmente, sem enviar o orçamento ao serviço de OCR. Fotos nítidas, bem iluminadas e alinhadas dão resultado melhor. A tela mostra o arquivo ao lado dos dados: **confira sempre os códigos, descrições, quantidades e valores reconhecidos**. Nada é salvo antes de **Confirmar orçamento**. PDF com senha ainda precisa de uma cópia sem senha.
 
 Frete ausente permanece **não informado** e suspende a sugestão automática de vencedor enquanto uma proposta comparável tiver esse dado pendente (0,00 só quando incluso). A validade expressa em dias é preservada como texto e pede confirmação da data final. Produtos com marcas ou descrições diferentes exigem que a pessoa confirme a correspondência técnica; o Suprimo não declara equivalência por conta própria. O relatório impresso destaca a seleção registrada, reproduz as descrições originais e reserva a assinatura ao síndico. Sem seleção registrada, a impressão sai marcada como rascunho e não traz campo de aprovação.
 
@@ -45,9 +45,10 @@ Frete ausente permanece **não informado** e suspende a sugestão automática de
       data/      esquema versionado + migrações, IndexedDB (e memória), catálogo, demonstração
       state/     store pequeno com eventos; as telas reagem a mudanças
       ui/        telas, abas e componentes (funções que renderizam e ligam eventos)
-      importacao/ leitura de orçamento em PDF: extrair, interpretar, validar, mapear, aplicar
+      importacao/ leitura de orçamento em PDF/imagem: extrair, ocr, interpretar, validar, mapear, aplicar
       lib/       formatação pt-BR (Intl), ícones SVG, template HTML que escapa tudo, BrasilAPI, carregador do pdfjs
     vendor/pdfjs pdfjs-dist (legacy) embutido, sem CDN
+    vendor/tesseract Tesseract.js v7 e worker; núcleo WASM/idiomas obtidos no primeiro OCR
       styles/    CSS em camadas: reset, tokens, base, layout, components, utilities, print
     tests/       node:test
     docs/        decisões de arquitetura
@@ -56,4 +57,4 @@ Por que cada escolha: [docs/decisoes.md](docs/decisoes.md).
 
 ## Dependências externas
 
-Só duas: as fontes do Google Fonts (Inter e JetBrains Mono) e a BrasilAPI (consulta de CNPJ). O pdfjs vai junto no repositório (`vendor/pdfjs`, licença Apache-2.0). Não há chave de API nem variável de ambiente.
+As fontes do Google Fonts (Inter e JetBrains Mono), a BrasilAPI (consulta de CNPJ) e, na primeira utilização do OCR, os pacotes WASM/idiomas do Tesseract.js via CDN. O código do pdfjs (`vendor/pdfjs`) e o Tesseract.js (`vendor/tesseract`) acompanham o repositório. Não há chave de API nem variável de ambiente.

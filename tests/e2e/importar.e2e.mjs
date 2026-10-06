@@ -44,18 +44,16 @@ await p.waitForSelector("[data-nova]");
 await p.click("[data-nova]"); await p.fill('#fn [name="titulo"]', "Hidráulica do condomínio"); await p.click("[data-criar]");
 await p.waitForSelector('[data-acao="colar"]');
 await p.goto(URL_APP + "#/cotacoes/COT-0001/propostas");
-await p.click('a:has-text("Importar orçamento (PDF)")');
+await p.click('a:has-text("Importar orçamento")');
 await p.waitForSelector("[data-escolher]");
 ok(p.url().endsWith("#/cotacoes/COT-0001/importar"), "botão da aba Propostas abre a tela Importar orçamento");
 await p.screenshot({ path: `${SAIDA}/1-escolher-pc.png` });
 
 // --- arquivos inválidos ---
-await enviar(p, TEXTO); ok((await msg(p)).includes("não é um PDF"), "recusa .txt: " + (await msg(p)));
-await enviar(p, FALSO); ok((await msg(p)).includes("não é um PDF"), "recusa .pdf falso (sem cabeçalho %PDF)");
+await enviar(p, TEXTO); ok((await msg(p)).includes("PDF, JPG ou PNG"), "recusa .txt: " + (await msg(p)));
+await enviar(p, FALSO); ok((await msg(p)).includes("PDF, JPG ou PNG"), "recusa .pdf falso (sem cabeçalho %PDF)");
 await enviar(p, GRANDE); ok((await msg(p)).includes("10 MB"), "recusa acima de 10 MB");
 await enviar(p, FIX + "orcamento-com-senha.pdf"); ok((await msg(p)).includes("tem senha"), "PDF com senha: " + (await msg(p)).slice(0, 60));
-await enviar(p, FIX + "orcamento-digitalizado.pdf"); ok((await msg(p)).includes("precisa de OCR"), "PDF digitalizado: " + (await msg(p)).slice(0, 70));
-await p.screenshot({ path: `${SAIDA}/2-erro-ocr-pc.png` });
 
 // --- PDF válido: conferência ---
 await enviar(p, VALIDO);
@@ -152,12 +150,11 @@ ok(await semRolagemLateral(p), "PC: página sem rolagem lateral");
 const m = await pagina({ viewport: { width: 390, height: 844 }, isMobile: true, deviceScaleFactor: 2, hasTouch: true });
 await m.goto(URL_APP); await m.waitForSelector("[data-nova]");
 await m.goto(URL_APP + "#/cotacoes"); await m.click("[data-nova]"); await m.fill('#fn [name="titulo"]', "Celular"); await m.click("[data-criar]"); await m.waitForSelector('[data-acao="colar"]');
-await m.goto(URL_APP + "#/cotacoes/COT-0001/propostas"); await m.waitForSelector('a:has-text("Importar orçamento (PDF)")');
+await m.goto(URL_APP + "#/cotacoes/COT-0001/propostas"); await m.waitForSelector('a:has-text("Importar orçamento")');
 await m.screenshot({ path: `${SAIDA}/8-propostas-celular.png` });
-await m.click('a:has-text("Importar orçamento (PDF)")'); await m.waitForSelector("[data-escolher]");
+await m.click('a:has-text("Importar orçamento")'); await m.waitForSelector("[data-escolher]");
 ok(await semRolagemLateral(m), "celular: tela de envio sem rolagem lateral");
 await m.screenshot({ path: `${SAIDA}/9-escolher-celular.png` });
-await enviar(m, FIX + "orcamento-digitalizado.pdf"); ok((await msg(m)).includes("precisa de OCR"), "celular: PDF digitalizado dá aviso de OCR");
 await enviar(m, VALIDO); await m.waitForSelector(".conferencia");
 ok(await semRolagemLateral(m), "celular: conferência sem rolagem lateral");
 ok(!(await m.locator(".conferencia__pdf").isVisible()), "celular: PDF não ocupa a tela (botão Ver PDF)");

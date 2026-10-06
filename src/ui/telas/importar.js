@@ -1,4 +1,4 @@
-// Importar orçamento (PDF com texto): escolher o arquivo → ler → conferir ao lado do PDF → confirmar.
+// Importar orçamento: escolher PDF/JPG/PNG → ler → conferir ao lado do arquivo → confirmar.
 // Nada é salvo antes de "Confirmar orçamento".
 import { html, montar } from "../../lib/html.js";
 import { icone } from "../../lib/icones.js";
@@ -6,7 +6,8 @@ import { reais, reaisCampo, numeroBr, dataBr, hoje } from "../../lib/formato.js"
 import { lerCentavos } from "../../domain/dinheiro.js";
 import { cnpjMascara } from "../../domain/cnpj.js";
 import { estaEncerrada, rotuloStatus } from "../../domain/status.js";
-import { extrairOrcamento, ErroOrcamento, MENSAGENS, LIMITE_BYTES, pareceUmPdf } from "../../importacao/extrair.js";
+import { ErroOrcamento, MENSAGENS, LIMITE_BYTES } from "../../importacao/extrair.js";
+import { extrairDocumento, tipoDocumento } from "../../importacao/ocr.js";
 import { sha256Hex } from "../../importacao/hash.js";
 import { sugerirCorrespondencias } from "../../importacao/mapear.js";
 import { validarOrcamento, camposFaltando, verificarDuplicidade } from "../../importacao/validar.js";
@@ -37,7 +38,7 @@ export function telaImportar(raiz, { store, rota }) {
     return () => {};
   }
 
-  const e = { fase: "escolher", erro: null, arquivo: null, bytes: null, hash: "", url: "", dados: null, correspondencia: [], sujo: false, duplicidade: null };
+  const e = { fase: "escolher", erro: null, arquivo: null, bytes: null, tipo: null, hash: "", url: "", dados: null, correspondencia: [], sujo: false, duplicidade: null, abort: null, progresso: null };
   let ativo = true;
   const limparUrl = () => { if (e.url) URL.revokeObjectURL(e.url); e.url = ""; };
 
@@ -51,11 +52,11 @@ export function telaImportar(raiz, { store, rota }) {
         ${e.erro ? html`<p class="faixa" data-tom="perigo" role="alert">${icone("alerta", 16)}<span>${e.erro.mensagem}${dup?.onde ? html` <a href="${dup.onde}">Abrir a proposta</a>` : ""}</span></p>` : ""}
         <button type="button" class="dropzone" data-escolher>
           ${icone("subir", 34)}
-          <strong>Arraste o PDF do orçamento aqui</strong>
+          <strong>Arraste o orçamento aqui</strong>
           <span>ou clique para escolher o arquivo</span>
-          <small>Só PDF com texto, até 10 MB. A leitura roda no seu navegador e nada é salvo antes de você confirmar.</small>
+          <small>PDF, JPG ou PNG, até 10 MB. Arquivos digitalizados passam por OCR e precisam de conferência. Nada é salvo antes de você confirmar.</small>
         </button>
-        <input type="file" accept="application/pdf,.pdf" hidden data-arquivo aria-label="Escolher PDF do orçamento">
+        <input type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" hidden data-arquivo aria-label="Escolher arquivo do orçamento">
       </section>`);
     const entrada = raiz.querySelector("[data-arquivo]"), zona = raiz.querySelector("[data-escolher]");
     zona.addEventListener("click", () => entrada.click());
@@ -66,37 +67,45 @@ export function telaImportar(raiz, { store, rota }) {
   }
 
   function desenharLendo() {
-    montar(raiz, html`<section class="cartao" aria-live="polite"><div class="vazio">${icone("relogio", 34)}<h2 class="vazio__titulo">Lendo o PDF…</h2><p class="vazio__texto">${e.arquivo?.name}</p></div></section>`);
+    montar(raiz, html`<section class="cartao" aria-live="polite"><div class="vazio">${icone("relogio", 34)}<h2 class="vazio__titulo">${e.progresso?.fase ?? "Lendo arquivo"}…</h2><p class="vazio__texto">${e.arquivo?.name}${e.progresso?.pagina ? ` · página ${e.progresso.pagina}/${e.progresso.total}` : ""}${e.progresso?.progresso != null ? ` · ${Math.round(e.progresso.progresso * 100)}%` : ""}</p><button class="botao" data-parar>Cancelar leitura</button></div></section>`);
+    raiz.querySelector("[data-parar]").addEventListener("click", () => { e.abort?.abort(); e.fase = "escolher"; e.progresso = null; desenhar(); });
   }
 
   async function receber(arquivo) {
     if (!arquivo) return;
     e.erro = null;
     const falha = (codigo, mensagem = MENSAGENS[codigo], extra = {}) => { e.fase = "escolher"; e.erro = { codigo, mensagem, ...extra }; if (ativo) desenhar(); };
-    if (arquivo.size > LIMITE_BYTES) return falha("grande");
-    if ((arquivo.type && arquivo.type !== "application/pdf") || !/\.pdf$/i.test(arquivo.name)) return falha("invalido");
-    e.fase = "lendo"; e.arquivo = arquivo; desenhar();
+    if (arquivo.size > LIMITE_BYTES) return falha("grande", "O arquivo passa de 10 MB. Envie um arquivo menor.");
+    if (!/\.(pdf|jpe?g|png)$/i.test(arquivo.name)) return falha("invalido", "Use um arquivo PDF, JPG ou PNG.");
+    e.abort = new AbortController();
+    const controle = e.abort;
+    e.fase = "lendo"; e.arquivo = arquivo; e.progresso = null; desenhar();
     try {
       const bytes = new Uint8Array(await arquivo.arrayBuffer());
-      if (!pareceUmPdf(bytes)) return falha("invalido");
+      const tipo = tipoDocumento(bytes);
+      if (!tipo || (arquivo.type && arquivo.type !== tipo)) return falha("invalido", "O arquivo não é um PDF, JPG ou PNG válido.");
       const hash = await sha256Hex(bytes);
       const doc = store.documentoPorHash(hash);
       if (doc) {
         const origem = store.estado.cotacoes.find((c) => c.id === doc.cotacaoId);
         return falha("duplicado", "Este orçamento já foi importado.", { onde: origem ? linkCotacao(origem.numero, "propostas") : null });
       }
-      const dados = await extrairOrcamento(bytes);
-      if (!ativo) return;
-      e.bytes = bytes; e.hash = hash; e.dados = dados;
+      const { dados } = await extrairDocumento(bytes, { sinal: controle.signal, aoProgresso: (progresso) => {
+        if (ativo && e.abort === controle && e.fase === "lendo") { e.progresso = progresso; desenharLendo(); }
+      } });
+      if (!ativo || controle.signal.aborted) return;
+      e.bytes = bytes; e.tipo = tipo; e.hash = hash; e.dados = dados;
       e.duplicidade = verificarDuplicidade(store.estado.documentos, { hash, cnpj: dados.fornecedor.cnpj, numero: dados.orcamento.numero });
       e.correspondencia = sugerirCorrespondencias(dados.itens, cot.itens).map((id) => id ?? (cot.itens.length ? "" : "novo"));
-      limparUrl(); e.url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      limparUrl(); e.url = URL.createObjectURL(new Blob([bytes], { type: tipo }));
       e.fase = "conferir"; e.sujo = false;
       desenhar();
     } catch (erro) {
-      if (!ativo) return;
+      if (!ativo || controle.signal.aborted) return;
       if (erro instanceof ErroOrcamento) return falha(erro.codigo, erro.message);
-      falha("corrompido", "Não foi possível ler o PDF. Tente outro arquivo.");
+      falha("corrompido", "Não foi possível ler o arquivo. Tente outro.");
+    } finally {
+      if (e.abort === controle) e.abort = null;
     }
   }
 
@@ -122,7 +131,7 @@ export function telaImportar(raiz, { store, rota }) {
     const valor = tipo === "dinheiro" ? reaisCampo(v) : tipo === "cnpj" ? cnpjMascara(v) || (v ?? "") : (v ?? "");
     return html`<label class="campo-rotulado ${largo ? "campo-rotulado--largo" : ""}" data-faltando="${String(faltando().has(caminho))}" data-caminho-rotulo="${caminho}">${rotulo}
       <input class="campo ${mono || tipo === "dinheiro" ? "campo--mono" : ""} ${tipo === "dinheiro" ? "campo--num" : ""}" data-caminho="${caminho}" data-tipo="${tipo}" type="${tipo === "data" ? "date" : "text"}" value="${valor}" ${tipo === "dinheiro" ? 'inputmode="decimal"' : ""}>
-      <span class="campo-rotulado__faltou">Não encontrado no PDF: preencha ou deixe em branco.</span></label>`;
+      <span class="campo-rotulado__faltou">Não encontrado no arquivo: preencha ou deixe em branco.</span></label>`;
   };
 
   const linhaItem = (it, i) => html`
@@ -158,7 +167,7 @@ export function telaImportar(raiz, { store, rota }) {
         <p class="conferir__arquivo">${icone("arquivo", 16)}${e.arquivo.name}</p></header>
       <button type="button" class="faixa faixa--botao" data-resumo-alertas></button>
       <div class="conferencia"><div class="conferencia__grade">
-        <aside class="conferencia__pdf" aria-label="PDF do orçamento ${e.arquivo.name}"><div class="conferencia__paginas" data-paginas></div></aside>
+        <aside class="conferencia__pdf" aria-label="Arquivo do orçamento ${e.arquivo.name}"><div class="conferencia__paginas" data-paginas></div></aside>
         <div class="conferencia__dados">
           <section class="cartao"><h2 class="cartao__titulo">Fornecedor</h2>
             <div class="formulario__grade">
@@ -194,7 +203,7 @@ export function telaImportar(raiz, { store, rota }) {
         </div>
       </div></div>
       <div class="barra-acoes" role="group" aria-label="Ações da conferência">
-        <button class="botao" data-ver-pdf aria-label="Ver PDF em outra aba">${icone("arquivo", 16)}<span class="so-largo">Ver PDF</span></button>
+        <button class="botao" data-ver-pdf aria-label="Ver arquivo em outra aba">${icone("arquivo", 16)}<span class="so-largo">Ver arquivo</span></button>
         <span class="espaco"></span>
         <button class="botao" data-cancelar>Cancelar</button>
         <button class="botao botao--destaque" data-confirmar>${icone("ok", 16)}Confirmar orçamento</button>
@@ -203,12 +212,19 @@ export function telaImportar(raiz, { store, rota }) {
     atualizarFornecedorNota();
     resumirAlertas();
     raiz.querySelector("[data-resumo-alertas]").addEventListener("click", () => raiz.querySelector("[data-alertas]").scrollIntoView({ behavior: "smooth", block: "center" }));
-    desenharPaginasDoPdf(raiz.querySelector("[data-paginas]"));
+    desenharArquivo(raiz.querySelector("[data-paginas]"));
   }
 
   /** Mostra as páginas do PDF ao lado dos dados. Desenhado pelo próprio pdfjs, igual em qualquer navegador (inclusive celular). */
-  async function desenharPaginasDoPdf(destino) {
-    if (!destino || !destino.clientWidth) return; // escondido em tela estreita: lá vale o botão "Ver PDF"
+  async function desenharArquivo(destino) {
+    if (!destino || !destino.clientWidth) return;
+    if (e.tipo !== "application/pdf") {
+      const imagem = document.createElement("img");
+      imagem.src = e.url; imagem.alt = `Imagem do orçamento ${e.arquivo.name}`;
+      imagem.style.maxWidth = "100%";
+      destino.append(imagem);
+      return;
+    }
     try {
       const pdfjs = await carregarPdfjs();
       const tarefa = pdfjs.getDocument({ data: e.bytes.slice(), useSystemFonts: true, isEvalSupported: false });
@@ -226,7 +242,7 @@ export function telaImportar(raiz, { store, rota }) {
         destino.append(canvas);
       }
       await tarefa.destroy();
-    } catch (erro) { console.warn("pdf", erro); if (destino.isConnected) destino.textContent = "Não foi possível mostrar o PDF aqui. Use o botão Ver PDF."; }
+    } catch (erro) { console.warn("pdf", erro); if (destino.isConnected) destino.textContent = "Não foi possível mostrar o PDF aqui. Use o botão Ver arquivo."; }
   }
 
   function atualizarAlertas() {
@@ -239,7 +255,7 @@ export function telaImportar(raiz, { store, rota }) {
     const botao = raiz.querySelector("[data-resumo-alertas]");
     const graves = alertasAtuais().filter((a) => a.nivel !== "info");
     botao.dataset.tom = graves.some((a) => a.nivel === "erro") ? "perigo" : graves.length ? "aviso" : "ok";
-    montar(botao, html`${icone(graves.length ? "alerta" : "ok", 16)}<span>${graves.length ? `${graves.length} ${graves.length === 1 ? "alerta para conferir" : "alertas para conferir"}. Toque para ver.` : "Os números fecham. Confira os dados com o PDF e confirme."}</span>`);
+    montar(botao, html`${icone(graves.length ? "alerta" : "ok", 16)}<span>${graves.length ? `${graves.length} ${graves.length === 1 ? "alerta para conferir" : "alertas para conferir"}. Toque para ver.` : "Os números fecham. Confira os dados com o arquivo e confirme."}</span>`);
   }
   function atualizarFornecedorNota() {
     const nota = raiz.querySelector("[data-fornecedor-nota]");
@@ -303,13 +319,17 @@ export function telaImportar(raiz, { store, rota }) {
       const ok = await confirmar({ titulo: "Confirmar com alertas?", rotulo: "Confirmar mesmo assim",
         texto: html`Estes pontos não fecham e não foram corrigidos:<ul class="alertas-lista">${graves.map((a) => html`<li>${a.mensagem}</li>`)}</ul>` });
       if (!ok) return;
+    } else if (d.diagnostico?.metodo === "ocr") {
+      const ok = await confirmar({ titulo: "Conferiu a leitura do OCR?", rotulo: "Conferi e confirmar",
+        texto: "Confira no arquivo original os códigos, descrições, quantidades, preços, frete e total. O reconhecimento pode trocar letras e números mesmo quando as contas fecham." });
+      if (!ok) return;
     }
     const plano = montarImportacao({ cotacao: cot, dados: d, correspondencia: e.correspondencia, fornecedores: store.estado.fornecedores,
-      arquivo: { nome: e.arquivo.name, tamanho: e.arquivo.size, tipo: "application/pdf" }, hash: e.hash, agora: new Date().toISOString(), novoId });
+      arquivo: { nome: e.arquivo.name, tamanho: e.arquivo.size, tipo: e.tipo }, hash: e.hash, agora: new Date().toISOString(), novoId });
     const botao = raiz.querySelector("[data-confirmar]");
     botao.disabled = true;
     try {
-      await store.confirmarImportacao({ cotacaoId: cot.id, plano, arquivo: new Blob([e.bytes], { type: "application/pdf" }) });
+      await store.confirmarImportacao({ cotacaoId: cot.id, plano, arquivo: new Blob([e.bytes], { type: e.tipo }) });
     } catch (erro) {
       botao.disabled = false;
       avisar(erro.message === "Este orçamento já foi importado." ? erro.message : "Não foi possível salvar o orçamento. Nada foi gravado. Tente de novo.");
@@ -326,5 +346,5 @@ export function telaImportar(raiz, { store, rota }) {
     else desenharEscolher();
   }
   desenhar();
-  return () => { ativo = false; limparUrl(); };
+  return () => { ativo = false; e.abort?.abort(); limparUrl(); };
 }

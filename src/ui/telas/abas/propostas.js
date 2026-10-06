@@ -24,7 +24,7 @@ export function abaPropostas({ cot, forn, ultimo }) {
   const atual = cot.propostas.find((p) => p.id === selecionada.get(cot.id)) ?? cot.propostas[0] ?? null;
   if (atual) selecionada.set(cot.id, atual.id);
 
-  const botaoImportar = html`<a class="botao" href="${linkImportar(cot.numero)}" ${bloqueada ? 'aria-disabled="true" tabindex="-1"' : ""}>${icone("subir", 16)}Importar orçamento (PDF)</a>`;
+  const botaoImportar = html`<a class="botao" href="${linkImportar(cot.numero)}" ${bloqueada ? 'aria-disabled="true" tabindex="-1"' : ""}>${icone("subir", 16)}Importar orçamento</a>`;
   const seletor = html`
     <div class="seletor-proposta" role="tablist" aria-label="Propostas">
       ${cot.propostas.map((p) => html`<button class="seletor-proposta__item" role="tab" aria-selected="${String(p.id === atual?.id)}" data-escolher="${p.id}">${avatar(forn.get(p.fornecedorId)?.nome ?? "?")}<span>${forn.get(p.fornecedorId)?.nome ?? "Fornecedor removido"}</span></button>`)}
