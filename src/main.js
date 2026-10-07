@@ -46,13 +46,11 @@ async function montarSessao(usuario) {
   try {
     let local;
     try { local = await abrirIndexedDB(); } catch { local = criarMemoria(); }
-    const [dadosLocais, nuvem] = await Promise.all([local.carregar(), (async () => {
-      const adaptador = criarAdaptadorFirebase({ db, uid: usuario.uid, sdk: fs, local, arquivos: criarClienteArquivos({ auth }) });
-      const dados = await adaptador.carregar();
-      await adaptador.sincronizarAnexos(dadosLocais);
-      return { adaptador, dados };
-    })()]);
-    const adaptador = nuvem.adaptador;
+    const dadosLocais = await local.carregar();
+    const adaptador = criarAdaptadorFirebase({ db, uid: usuario.uid, sdk: fs, local, arquivos: criarClienteArquivos({ auth }) });
+    const dadosNuvem = await adaptador.carregar();
+    await adaptador.sincronizarAnexos(dadosNuvem);
+    const nuvem = { adaptador, dados: dadosNuvem };
     const temLocal = quantidadeDados(dadosLocais) > 0 || JSON.stringify(dadosLocais.ajustes ?? AJUSTES_PADRAO) !== JSON.stringify(AJUSTES_PADRAO);
     const temNuvem = quantidadeDados(nuvem.dados) > 0 || Boolean(nuvem.dados.ajustes);
 
