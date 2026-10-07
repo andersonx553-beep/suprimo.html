@@ -1,5 +1,6 @@
 import { abrirIndexedDB, criarMemoria } from "./data/banco.js";
 import { criarAdaptadorFirebase } from "./data/firebase-adaptador.js";
+import { criarClienteArquivos } from "./lib/arquivos-remotos.js";
 import { criarStore } from "./state/store.js";
 import { iniciarApp } from "./ui/app.js";
 import { auth, db, firebase, EMAIL_AUTORIZADO } from "./lib/firebase.js";
@@ -46,8 +47,10 @@ async function montarSessao(usuario) {
     let local;
     try { local = await abrirIndexedDB(); } catch { local = criarMemoria(); }
     const [dadosLocais, nuvem] = await Promise.all([local.carregar(), (async () => {
-      const adaptador = criarAdaptadorFirebase({ db, uid: usuario.uid, sdk: fs, local });
-      return { adaptador, dados: await adaptador.carregar() };
+      const adaptador = criarAdaptadorFirebase({ db, uid: usuario.uid, sdk: fs, local, arquivos: criarClienteArquivos({ auth }) });
+      const dados = await adaptador.carregar();
+      await adaptador.sincronizarAnexos(dadosLocais);
+      return { adaptador, dados };
     })()]);
     const adaptador = nuvem.adaptador;
     const temLocal = quantidadeDados(dadosLocais) > 0 || JSON.stringify(dadosLocais.ajustes ?? AJUSTES_PADRAO) !== JSON.stringify(AJUSTES_PADRAO);
@@ -68,7 +71,7 @@ async function montarSessao(usuario) {
     if (temLocal && !temNuvem) {
       telaAcesso({
         titulo: "Enviar seus dados para a nuvem?",
-        texto: `Encontramos neste aparelho ${dadosLocais.cotacoes.length} cotações, ${dadosLocais.fornecedores.length} fornecedores e ${dadosLocais.documentos?.length ?? 0} registros de orçamento. Ao enviar, os registros e ajustes serão copiados para o Firestore. PDFs, XMLs e imagens não são enviados e continuarão disponíveis apenas neste aparelho.`,
+        texto: `Encontramos neste aparelho ${dadosLocais.cotacoes.length} cotações, ${dadosLocais.fornecedores.length} fornecedores e ${dadosLocais.documentos?.length ?? 0} registros de orçamento. Ao enviar, os registros e ajustes serão copiados para o Firestore. PDFs, XMLs e imagens também serão enviados para o armazenamento privado do Cloudflare.`,
         rotulo: "Enviar dados e continuar",
         acao: async () => {
           const botao = raiz.querySelector(".acesso__botao"); botao.disabled = true; botao.textContent = "Enviando…";
