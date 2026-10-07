@@ -33,9 +33,10 @@ export function validarOrcamento(d, { hoje, nomeArquivo = "" }) {
   const f = d.fornecedor ?? {}, o = d.orcamento ?? {}, c = d.condicoes ?? {}, itens = d.itens ?? [];
 
   if (d.diagnostico?.metodo === "ocr") add("ocr-conferencia", "aviso", "itens", "Leitura por OCR: confira no arquivo original fornecedor, códigos, descrições, quantidades, preços, frete e total. O OCR pode trocar letras ou dígitos mesmo quando as contas fecham.");
+  if (d.diagnostico?.metodo === "xml") add("xml-conferencia", "info", "itens", "XML de orçamento: confira os itens e condições antes de confirmar.");
 
   if (f.cnpj && !cnpjValido(f.cnpj)) add("cnpj", "erro", "fornecedor.cnpj", "O CNPJ não passa na conferência dos dígitos verificadores. Confira com o PDF.");
-  if (!itens.length) add("sem-itens", "erro", "itens", "Nenhum item foi encontrado. Adicione os itens à mão ou confira se o arquivo é o orçamento certo.");
+  if (!itens.length) add("sem-itens", "erro", "itens", "A leitura não encontrou itens. Confira o arquivo, adicione as linhas manualmente ou importe um XML de orçamento do Suprimo.");
   if (c.freteCentavos == null) add("frete-pendente", "aviso", "condicoes.freteCentavos", "O frete não foi informado. Confirme com o fornecedor antes de comparar o custo final; informe R$ 0,00 apenas se for incluso.");
   if (!o.validade && o.validadeTexto) add("validade-relativa", "aviso", "orcamento.validade", `Validade informada como ${o.validadeTexto}; confirme até quando a proposta vale.`);
   const numeroArquivo = nomeArquivo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/(?:cotacao|proposta|orcamento)\s*(?:n[ºo.]*)?[\s._-]*(\d{2,7})/i)?.[1];

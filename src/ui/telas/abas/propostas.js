@@ -152,9 +152,13 @@ export function ligarPropostas(raiz, ctx) {
     if (!blob) { avisar("Arquivo não encontrado neste navegador."); return; }
     if (urlAtual) URL.revokeObjectURL(urlAtual);
     urlAtual = URL.createObjectURL(blob);
-    montar(visualizador, anexo.tipo.startsWith("image/")
-      ? html`<img src="${urlAtual}" alt="${anexo.nome}">`
-      : html`<iframe src="${urlAtual}" title="${anexo.nome}"></iframe>`);
+    if (anexo.tipo === "application/xml" || anexo.tipo === "text/xml") {
+      montar(visualizador, html`<pre style="white-space:pre-wrap;overflow-wrap:anywhere;padding:16px">${await blob.text()}</pre>`);
+    } else {
+      montar(visualizador, anexo.tipo.startsWith("image/")
+        ? html`<img src="${urlAtual}" alt="${anexo.nome}">`
+        : html`<iframe src="${urlAtual}" title="${anexo.nome}"></iframe>`);
+    }
   };
   raiz.querySelectorAll("[data-ver]").forEach((b) => b.addEventListener("click", () => abrirAnexo(b.dataset.ver)));
   form.parentElement.querySelector("[data-anexar]").addEventListener("change", async (e) => {

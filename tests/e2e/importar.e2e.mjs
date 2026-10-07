@@ -50,8 +50,8 @@ ok(p.url().endsWith("#/cotacoes/COT-0001/importar"), "botão da aba Propostas ab
 await p.screenshot({ path: `${SAIDA}/1-escolher-pc.png` });
 
 // --- arquivos inválidos ---
-await enviar(p, TEXTO); ok((await msg(p)).includes("PDF, JPG ou PNG"), "recusa .txt: " + (await msg(p)));
-await enviar(p, FALSO); ok((await msg(p)).includes("PDF, JPG ou PNG"), "recusa .pdf falso (sem cabeçalho %PDF)");
+await enviar(p, TEXTO); ok((await msg(p)).includes("PDF, JPG, PNG ou XML"), "recusa .txt: " + (await msg(p)));
+await enviar(p, FALSO); ok((await msg(p)).includes("PDF, JPG, PNG ou XML"), "recusa .pdf falso (sem cabeçalho %PDF)");
 await enviar(p, GRANDE); ok((await msg(p)).includes("10 MB"), "recusa acima de 10 MB");
 await enviar(p, FIX + "orcamento-com-senha.pdf"); ok((await msg(p)).includes("tem senha"), "PDF com senha: " + (await msg(p)).slice(0, 60));
 

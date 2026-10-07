@@ -5,6 +5,7 @@ import { montarLinhas } from "./linhas.js";
 import { interpretarOrcamento } from "./interpretar.js";
 import { completarDadosOcr, itensPorTextoOcr } from "./ocr-texto.js";
 import { carregarPdfjs } from "../lib/pdfjs.js";
+import { lerOrcamentoXml } from "./xml.js";
 
 const MAX_PAGINAS = 12;
 const MAX_PIXELS = 7_000_000;
@@ -14,6 +15,8 @@ export function tipoDocumento(bytes) {
   if (pareceUmPdf(bytes)) return "application/pdf";
   if (bytes.length > 8 && bytes[0] === 0x89 && [0x50, 0x4e, 0x47].every((v, i) => bytes[i + 1] === v)) return "image/png";
   if (bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  const inicio = new TextDecoder().decode(bytes.subarray(0, 512)).replace(/^\uFEFF/, "").trimStart();
+  if (/^<\?xml\b|^<orcamentoSuprimo\b/i.test(inicio)) return "application/xml";
   return null;
 }
 
@@ -104,12 +107,19 @@ export function trechosOcr(data, pagina, larguraImagem) {
 /** Entrada da UI: PDF com texto usa o caminho antigo; imagem/PDF digitalizado usa OCR com conferência. */
 export async function extrairDocumento(bytes, { aoProgresso = () => {}, sinal, pdfjs, criarWorker } = {}) {
   const tipo = tipoDocumento(bytes);
-  if (!tipo) throw falha("invalido", "Use um PDF, JPG ou PNG válido.");
+  if (!tipo) throw falha("invalido", "Use um PDF, JPG, PNG ou XML válido.");
   if (bytes.length > LIMITE_BYTES) throw falha("grande", "O arquivo passa de 10 MB. Envie um arquivo menor.");
   cancelarSePreciso(sinal);
+  if (tipo === "application/xml") return { dados: lerOrcamentoXml(bytes), tipo };
+  let textoSemItens = null;
   if (tipo === "application/pdf") {
     pdfjs ??= await carregarPdfjs();
-    try { return { dados: await extrairOrcamento(bytes, { pdfjs }), tipo }; }
+    try {
+      const dados = await extrairOrcamento(bytes, { pdfjs });
+      if (dados.itens.length) return { dados, tipo };
+      textoSemItens = dados;
+      aoProgresso({ fase: "Tentando OCR na tabela" });
+    }
     catch (e) { if (!(e instanceof ErroOrcamento) || e.codigo !== "sem_texto") throw e; }
   }
   aoProgresso({ fase: "Preparando OCR" });
@@ -141,6 +151,7 @@ export async function extrairDocumento(bytes, { aoProgresso = () => {}, sinal, p
     }
   } catch (e) {
     if (sinal?.aborted) throw falha("cancelado", "Leitura cancelada.");
+    if (textoSemItens) return { dados: textoSemItens, tipo };
     if (e instanceof ErroOrcamento) throw e;
     throw falha("ocr_indisponivel", "Não foi possível iniciar o OCR. Confira sua conexão e tente novamente.");
   } finally {
@@ -148,11 +159,15 @@ export async function extrairDocumento(bytes, { aoProgresso = () => {}, sinal, p
     await worker?.terminate().catch(() => {});
   }
   const texto = paginas.map((p) => p.data.text).join("\n");
-  if (texto.replace(/\s/g, "").length < 30) throw falha("sem_texto", "A imagem não tem texto legível. Tente uma foto mais nítida e bem iluminada.");
+  if (texto.replace(/\s/g, "").length < 30) {
+    if (textoSemItens) return { dados: textoSemItens, tipo };
+    throw falha("sem_texto", "A imagem não tem texto legível. Tente uma foto mais nítida e bem iluminada.");
+  }
   const trechos = paginas.flatMap((p) => p.trechos);
   const dados = completarDadosOcr(interpretarOrcamento(montarLinhas(trechos), { largura: 600 }), texto);
   const itens = paginas.flatMap((p) => p.itens);
   if (itens.length > dados.itens.length) dados.itens = itens;
+  if (!dados.itens.length && textoSemItens) return { dados: textoSemItens, tipo };
   if (dados.condicoes.subtotalCentavos == null && dados.itens.length && dados.itens.every((i) => i.totalCentavos != null)) {
     dados.condicoes.subtotalCentavos = dados.itens.reduce((s, i) => s + i.totalCentavos, 0);
   }

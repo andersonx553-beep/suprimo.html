@@ -1,4 +1,4 @@
-// Importar orçamento: escolher PDF/JPG/PNG → ler → conferir ao lado do arquivo → confirmar.
+// Importar orçamento: escolher PDF/JPG/PNG/XML → ler → conferir ao lado do arquivo → confirmar.
 // Nada é salvo antes de "Confirmar orçamento".
 import { html, montar } from "../../lib/html.js";
 import { icone } from "../../lib/icones.js";
@@ -6,8 +6,10 @@ import { reais, reaisCampo, numeroBr, dataBr, hoje } from "../../lib/formato.js"
 import { lerCentavos } from "../../domain/dinheiro.js";
 import { cnpjMascara } from "../../domain/cnpj.js";
 import { estaEncerrada, rotuloStatus } from "../../domain/status.js";
-import { ErroOrcamento, MENSAGENS, LIMITE_BYTES } from "../../importacao/extrair.js";
+import { ErroOrcamento, MENSAGENS, LIMITE_BYTES, pareceUmPdf } from "../../importacao/extrair.js";
 import { extrairDocumento, tipoDocumento } from "../../importacao/ocr.js";
+import { gerarOrcamentoXml } from "../../importacao/xml.js";
+import { baixarTexto } from "../../lib/arquivo.js";
 import { sha256Hex } from "../../importacao/hash.js";
 import { sugerirCorrespondencias } from "../../importacao/mapear.js";
 import { validarOrcamento, camposFaltando, verificarDuplicidade } from "../../importacao/validar.js";
@@ -38,9 +40,10 @@ export function telaImportar(raiz, { store, rota }) {
     return () => {};
   }
 
-  const e = { fase: "escolher", erro: null, arquivo: null, bytes: null, tipo: null, hash: "", url: "", dados: null, correspondencia: [], sujo: false, duplicidade: null, abort: null, progresso: null };
+  const e = { fase: "escolher", erro: null, arquivo: null, bytes: null, tipo: null, hash: "", url: "", pdfAnexo: null, pdfBytes: null, pdfUrl: "", dados: null, correspondencia: [], sujo: false, duplicidade: null, abort: null, progresso: null };
   let ativo = true;
   const limparUrl = () => { if (e.url) URL.revokeObjectURL(e.url); e.url = ""; };
+  const limparPdfUrl = () => { if (e.pdfUrl) URL.revokeObjectURL(e.pdfUrl); e.pdfUrl = ""; };
 
   // ---------- fase 1: escolher o arquivo ----------
   function desenharEscolher() {
@@ -54,9 +57,9 @@ export function telaImportar(raiz, { store, rota }) {
           ${icone("subir", 34)}
           <strong>Arraste o orçamento aqui</strong>
           <span>ou clique para escolher o arquivo</span>
-          <small>PDF, JPG ou PNG, até 10 MB. Arquivos digitalizados passam por OCR e precisam de conferência. Nada é salvo antes de você confirmar.</small>
+          <small>PDF, JPG, PNG ou XML de orçamento do Suprimo, até 10 MB. Arquivos digitalizados passam por OCR. Confira os dados antes de confirmar.</small>
         </button>
-        <input type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" hidden data-arquivo aria-label="Escolher arquivo do orçamento">
+        <input type="file" accept="application/pdf,image/jpeg,image/png,application/xml,text/xml,.pdf,.jpg,.jpeg,.png,.xml" hidden data-arquivo aria-label="Escolher arquivo do orçamento">
       </section>`);
     const entrada = raiz.querySelector("[data-arquivo]"), zona = raiz.querySelector("[data-escolher]");
     zona.addEventListener("click", () => entrada.click());
@@ -76,14 +79,16 @@ export function telaImportar(raiz, { store, rota }) {
     e.erro = null;
     const falha = (codigo, mensagem = MENSAGENS[codigo], extra = {}) => { e.fase = "escolher"; e.erro = { codigo, mensagem, ...extra }; if (ativo) desenhar(); };
     if (arquivo.size > LIMITE_BYTES) return falha("grande", "O arquivo passa de 10 MB. Envie um arquivo menor.");
-    if (!/\.(pdf|jpe?g|png)$/i.test(arquivo.name)) return falha("invalido", "Use um arquivo PDF, JPG ou PNG.");
+    const extensao = arquivo.name.toLowerCase().match(/\.(pdf|jpe?g|png|xml)$/)?.[1];
+    if (!extensao) return falha("invalido", "Use um arquivo PDF, JPG, PNG ou XML de orçamento do Suprimo.");
     e.abort = new AbortController();
     const controle = e.abort;
     e.fase = "lendo"; e.arquivo = arquivo; e.progresso = null; desenhar();
     try {
       const bytes = new Uint8Array(await arquivo.arrayBuffer());
       const tipo = tipoDocumento(bytes);
-      if (!tipo || (arquivo.type && arquivo.type !== tipo)) return falha("invalido", "O arquivo não é um PDF, JPG ou PNG válido.");
+      const esperado = { pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", xml: "application/xml" }[extensao];
+      if (tipo !== esperado) return falha("invalido", "O conteúdo não corresponde ao formato do arquivo (PDF, JPG, PNG ou XML).");
       const hash = await sha256Hex(bytes);
       const doc = store.documentoPorHash(hash);
       if (doc) {
@@ -98,7 +103,7 @@ export function telaImportar(raiz, { store, rota }) {
       e.duplicidade = verificarDuplicidade(store.estado.documentos, { hash, cnpj: dados.fornecedor.cnpj, numero: dados.orcamento.numero });
       e.correspondencia = sugerirCorrespondencias(dados.itens, cot.itens).map((id) => id ?? (cot.itens.length ? "" : "novo"));
       limparUrl(); e.url = URL.createObjectURL(new Blob([bytes], { type: tipo }));
-      e.fase = "conferir"; e.sujo = false;
+      e.fase = "conferir"; e.sujo = false; e.pdfAnexo = null; e.pdfBytes = null; limparPdfUrl();
       desenhar();
     } catch (erro) {
       if (!ativo || controle.signal.aborted) return;
@@ -169,6 +174,12 @@ export function telaImportar(raiz, { store, rota }) {
       <div class="conferencia"><div class="conferencia__grade">
         <aside class="conferencia__pdf" aria-label="Arquivo do orçamento ${e.arquivo.name}"><div class="conferencia__paginas" data-paginas></div></aside>
         <div class="conferencia__dados">
+          ${e.tipo === "application/xml" ? html`<section class="cartao"><h2 class="cartao__titulo">PDF original para consulta</h2>
+            <p class="cartao__nota">Anexe o PDF deste mesmo orçamento. Ele ficará junto do XML na proposta para seu chefe visualizar as páginas. Confira se os dados dos dois arquivos correspondem.</p>
+            <label class="botao">Anexar PDF original<input type="file" accept="application/pdf,.pdf" hidden data-pdf-anexo></label>
+            <p class="cartao__nota" data-pdf-nome>Nenhum PDF anexado. Você também poderá anexá-lo depois na proposta.</p>
+            <button class="botao" data-ver-anexo hidden>Ver PDF anexado</button>
+          </section>` : ""}
           <section class="cartao"><h2 class="cartao__titulo">Fornecedor</h2>
             <div class="formulario__grade">
               ${campo({ rotulo: "Razão social", caminho: "fornecedor.razaoSocial" })}${campo({ rotulo: "Nome fantasia", caminho: "fornecedor.nomeFantasia" })}
@@ -200,10 +211,11 @@ export function telaImportar(raiz, { store, rota }) {
             <div class="acoes-linha"><button class="botao" data-add-item>${icone("mais", 16)}Adicionar item</button></div>
           </section>
           <section class="cartao" data-alertas aria-live="polite">${painelAlertas()}</section>
+          <div class="acoes-linha"><button class="botao" data-baixar-xml>Baixar XML conferido</button></div>
         </div>
       </div></div>
       <div class="barra-acoes" role="group" aria-label="Ações da conferência">
-        <button class="botao" data-ver-pdf aria-label="Ver arquivo em outra aba">${icone("arquivo", 16)}<span class="so-largo">Ver arquivo</span></button>
+        <button class="botao" data-ver-pdf aria-label="Ver arquivo em outra aba">${icone("arquivo", 16)}<span class="so-largo">Ver ${e.tipo === "application/xml" ? "XML" : "arquivo"}</span></button>
         <span class="espaco"></span>
         <button class="botao" data-cancelar>Cancelar</button>
         <button class="botao botao--destaque" data-confirmar>${icone("ok", 16)}Confirmar orçamento</button>
@@ -218,6 +230,14 @@ export function telaImportar(raiz, { store, rota }) {
   /** Mostra as páginas do PDF ao lado dos dados. Desenhado pelo próprio pdfjs, igual em qualquer navegador (inclusive celular). */
   async function desenharArquivo(destino) {
     if (!destino || !destino.clientWidth) return;
+    if (e.pdfBytes) return desenharPdf(destino, e.pdfBytes, e.pdfAnexo.name);
+    if (e.tipo === "application/xml") {
+      const pre = document.createElement("pre");
+      pre.textContent = new TextDecoder().decode(e.bytes);
+      pre.style.cssText = "white-space:pre-wrap;overflow-wrap:anywhere;padding:16px;font-size:12px";
+      destino.append(pre);
+      return;
+    }
     if (e.tipo !== "application/pdf") {
       const imagem = document.createElement("img");
       imagem.src = e.url; imagem.alt = `Imagem do orçamento ${e.arquivo.name}`;
@@ -225,19 +245,24 @@ export function telaImportar(raiz, { store, rota }) {
       destino.append(imagem);
       return;
     }
+    return desenharPdf(destino, e.bytes, e.arquivo.name);
+  }
+
+  async function desenharPdf(destino, bytes, nome) {
+    if (!destino?.clientWidth) return;
     try {
       const pdfjs = await carregarPdfjs();
-      const tarefa = pdfjs.getDocument({ data: e.bytes.slice(), useSystemFonts: true, isEvalSupported: false });
+      const tarefa = pdfjs.getDocument({ data: bytes.slice(), useSystemFonts: true, isEvalSupported: false });
       const doc = await tarefa.promise;
       const dpr = window.devicePixelRatio || 1;
-      for (let n = 1; n <= doc.numPages && ativo && destino.isConnected; n++) {
+      for (let n = 1; n <= Math.min(doc.numPages, 12) && ativo && destino.isConnected; n++) {
         const pagina = await doc.getPage(n);
         const escala = (destino.clientWidth - 2) / pagina.getViewport({ scale: 1 }).width;
         const vp = pagina.getViewport({ scale: escala * dpr });
         const canvas = document.createElement("canvas");
         canvas.width = Math.floor(vp.width); canvas.height = Math.floor(vp.height);
         canvas.style.width = `${canvas.width / dpr}px`;
-        canvas.setAttribute("role", "img"); canvas.setAttribute("aria-label", `Página ${n} do PDF`);
+        canvas.setAttribute("role", "img"); canvas.setAttribute("aria-label", `Página ${n} do PDF ${nome}`);
         await pagina.render({ canvasContext: canvas.getContext("2d"), canvas, viewport: vp }).promise;
         destino.append(canvas);
       }
@@ -299,12 +324,38 @@ export function telaImportar(raiz, { store, rota }) {
       corpo.querySelector("tr:last-child [data-item='descricao']")?.focus();
     });
     raiz.querySelector("[data-ver-pdf]").addEventListener("click", () => window.open(e.url, "_blank", "noopener"));
+    raiz.querySelector("[data-ver-anexo]")?.addEventListener("click", () => { if (e.pdfUrl) window.open(e.pdfUrl, "_blank", "noopener"); });
+    raiz.querySelector("[data-pdf-anexo]")?.addEventListener("change", async (evento) => {
+      const arquivo = evento.target.files?.[0];
+      if (!arquivo) return;
+      if (!/\.pdf$/i.test(arquivo.name) || arquivo.size > 25 * 1024 * 1024) { avisar("Anexe um PDF de até 25 MB."); return; }
+      const bytes = new Uint8Array(await arquivo.arrayBuffer());
+      if (!ativo || e.fase !== "conferir") return;
+      if (!pareceUmPdf(bytes)) { avisar("O anexo não é um PDF válido."); return; }
+      try {
+        const pdfjs = await carregarPdfjs();
+        const tarefa = pdfjs.getDocument({ data: bytes.slice(), useSystemFonts: true, isEvalSupported: false });
+        await tarefa.promise; await tarefa.destroy();
+      } catch { avisar("Não foi possível abrir o PDF anexado. Confira se ele não tem senha ou está corrompido."); return; }
+      e.pdfAnexo = arquivo; e.pdfBytes = bytes; e.sujo = true;
+      limparPdfUrl(); e.pdfUrl = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      raiz.querySelector("[data-pdf-nome]").textContent = `PDF anexado: ${arquivo.name}`;
+      raiz.querySelector("[data-ver-anexo]").hidden = false;
+      const destino = raiz.querySelector("[data-paginas]");
+      destino.replaceChildren(); desenharPdf(destino, bytes, arquivo.name);
+    });
+    raiz.querySelector("[data-baixar-xml]").addEventListener("click", () => {
+      try {
+        const nome = `orcamento-${String(cot.numero).replace(/[^a-z\d-]/gi, "_")}.xml`;
+        baixarTexto(nome, gerarOrcamentoXml(d), "application/xml;charset=utf-8");
+      } catch (erro) { avisar(erro.message); }
+    });
     raiz.querySelector("[data-cancelar]").addEventListener("click", cancelar);
     raiz.querySelector("[data-confirmar]").addEventListener("click", confirmarOrcamento);
   }
 
   async function cancelar() {
-    if (e.sujo && !(await confirmar({ titulo: "Descartar esta conferência?", texto: "Você mudou campos do orçamento. Nada foi salvo e as mudanças serão perdidas.", rotulo: "Descartar", perigo: true }))) return;
+    if (e.sujo && !(await confirmar({ titulo: "Descartar esta conferência?", texto: "Você alterou dados ou anexou um PDF. Nada foi salvo e as mudanças serão perdidas.", rotulo: "Descartar", perigo: true }))) return;
     ir(voltarPara);
   }
 
@@ -325,11 +376,14 @@ export function telaImportar(raiz, { store, rota }) {
       if (!ok) return;
     }
     const plano = montarImportacao({ cotacao: cot, dados: d, correspondencia: e.correspondencia, fornecedores: store.estado.fornecedores,
-      arquivo: { nome: e.arquivo.name, tamanho: e.arquivo.size, tipo: e.tipo }, hash: e.hash, agora: new Date().toISOString(), novoId });
+      arquivo: { nome: e.arquivo.name, tamanho: e.arquivo.size, tipo: e.tipo },
+      anexoPdf: e.pdfAnexo ? { nome: e.pdfAnexo.name, tamanho: e.pdfAnexo.size, tipo: "application/pdf" } : null,
+      hash: e.hash, agora: new Date().toISOString(), novoId });
     const botao = raiz.querySelector("[data-confirmar]");
     botao.disabled = true;
     try {
-      await store.confirmarImportacao({ cotacaoId: cot.id, plano, arquivo: new Blob([e.bytes], { type: e.tipo }) });
+      await store.confirmarImportacao({ cotacaoId: cot.id, plano, arquivo: new Blob([e.bytes], { type: e.tipo }),
+        anexoPdf: e.pdfBytes ? new Blob([e.pdfBytes], { type: "application/pdf" }) : null });
     } catch (erro) {
       botao.disabled = false;
       avisar(erro.message === "Este orçamento já foi importado." ? erro.message : "Não foi possível salvar o orçamento. Nada foi gravado. Tente de novo.");
@@ -346,5 +400,5 @@ export function telaImportar(raiz, { store, rota }) {
     else desenharEscolher();
   }
   desenhar();
-  return () => { ativo = false; e.abort?.abort(); limparUrl(); };
+  return () => { ativo = false; e.abort?.abort(); limparUrl(); limparPdfUrl(); };
 }

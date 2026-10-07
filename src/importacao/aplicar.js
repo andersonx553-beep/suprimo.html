@@ -5,10 +5,11 @@ import { normalizarUnidade } from "../domain/unidades.js";
  * @param {{
  *   cotacao: import('../domain/tipos.js').Cotacao, dados: any, correspondencia: (string|null|'novo')[],
  *   fornecedores: import('../domain/tipos.js').Fornecedor[],
- *   arquivo: {nome:string, tamanho:number, tipo:string}, hash: string, agora: string, novoId: ()=>string
+ *   arquivo: {nome:string, tamanho:number, tipo:string}, anexoPdf?: {nome:string,tamanho:number,tipo:string}|null,
+ *   hash: string, agora: string, novoId: ()=>string
  * }} entrada
  */
-export function montarImportacao({ cotacao, dados, correspondencia, fornecedores, arquivo, hash, agora, novoId }) {
+export function montarImportacao({ cotacao, dados, correspondencia, fornecedores, arquivo, anexoPdf = null, hash, agora, novoId }) {
   const f = dados.fornecedor, o = dados.orcamento, c = dados.condicoes;
   const avisos = [];
 
@@ -49,12 +50,16 @@ export function montarImportacao({ cotacao, dados, correspondencia, fornecedores
   const propostaId = novoId();
   const documentoId = novoId();
   const anexoId = novoId();
+  const anexoPdfMeta = anexoPdf ? { id: novoId(), nome: anexoPdf.nome, tipo: "application/pdf", tamanho: anexoPdf.tamanho } : null;
   const proposta = {
     id: propostaId, fornecedorId: fornecedor.id, precos,
     freteCentavos: c.freteCentavos, freteTipo: c.freteTipo ?? "", freteTexto: c.freteTexto ?? "", descontoCentavos: c.descontoCentavos ?? 0,
     prazoEntregaDias: c.prazoEntregaDias ?? null, prazoEntregaTexto: c.prazoEntrega ?? "",
     pagamento: { texto: c.pagamento ?? "", dias: c.pagamentoDias ?? null }, validade: o.validade ?? "", validadeTexto: o.validadeTexto ?? "", observacao: "",
-    anexos: [{ id: anexoId, nome: arquivo.nome, tipo: arquivo.tipo || "application/pdf", tamanho: arquivo.tamanho }],
+    anexos: [
+      ...(anexoPdfMeta ? [anexoPdfMeta] : []),
+      { id: anexoId, nome: arquivo.nome, tipo: arquivo.tipo || "application/pdf", tamanho: arquivo.tamanho },
+    ],
     status: "confirmada", origem: "importada", documentoId,
     orcamento: { numero: o.numero ?? "", emissao: o.emissao ?? "", vendedor: o.vendedor ?? "", subtotalCentavos: c.subtotalCentavos ?? null, totalCentavos: c.totalCentavos ?? null, itens: linhas },
   };
@@ -62,5 +67,5 @@ export function montarImportacao({ cotacao, dados, correspondencia, fornecedores
     id: documentoId, fileHash: hash, nome: arquivo.nome, tamanho: arquivo.tamanho, cnpj, numeroOrcamento: o.numero ?? "",
     cotacaoId: cotacao.id, propostaId, anexoId, importadoEm: agora,
   };
-  return { fornecedor, fornecedorNovo: !existente, novosItens, proposta, documento, avisos, ligados: usados.size };
+  return { fornecedor, fornecedorNovo: !existente, novosItens, proposta, documento, anexoPdfMeta, avisos, ligados: usados.size };
 }

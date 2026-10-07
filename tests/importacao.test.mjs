@@ -238,6 +238,31 @@ test("confirmar: grava proposta, fornecedor novo, convite 'respondeu', documento
   assert.equal(s.estado.documentos.length, 1);
   assert.ok(await s.lerAnexo(plano.documento.anexoId));
 });
+test("XML e PDF do mesmo orçamento ficam na mesma proposta e o PDF abre primeiro", async () => {
+  const s = await novoStore();
+  const c = s.criarCotacao({ titulo: "Hidráulica" });
+  const plano = montarImportacao({ cotacao: c, dados: dadosBase(), correspondencia: ["novo", "novo", "novo"], fornecedores: [],
+    arquivo: { nome: "orcamento.xml", tamanho: 20, tipo: "application/xml" },
+    anexoPdf: { nome: "original.pdf", tamanho: 8, tipo: "application/pdf" }, hash: "xml-pdf", agora: "2026-10-07T12:00:00Z", novoId: () => `n${++seq}` });
+  await s.confirmarImportacao({ cotacaoId: c.id, plano, arquivo: new Blob(["<orcamentoSuprimo/>"]), anexoPdf: new Blob(["%PDF-1.4"]) });
+  assert.deepEqual(s.cotacao(c.id).propostas[0].anexos.map((a) => a.nome), ["original.pdf", "orcamento.xml"]);
+  assert.equal((await s.lerAnexo(plano.anexoPdfMeta.id)).size, 8);
+  assert.ok(await s.lerAnexo(plano.documento.anexoId));
+  assert.equal(s.estado.documentos[0].anexoId, plano.documento.anexoId);
+});
+test("falha ao gravar o PDF opcional desfaz XML e registro", async () => {
+  const mem = criarMemoria(), s = await novoStore(mem);
+  const c = s.criarCotacao({ titulo: "Hidráulica" });
+  const plano = montarImportacao({ cotacao: c, dados: dadosBase(), correspondencia: ["novo", "novo", "novo"], fornecedores: [],
+    arquivo: { nome: "orcamento.xml", tamanho: 3, tipo: "application/xml" },
+    anexoPdf: { nome: "original.pdf", tamanho: 8, tipo: "application/pdf" }, hash: "xml-falha", agora: "2026-10-07T12:00:00Z", novoId: () => `n${++seq}` });
+  const salvar = mem.salvarAnexo;
+  mem.salvarAnexo = (id, blob) => id === plano.anexoPdfMeta.id ? Promise.reject(Error("sem espaço")) : salvar(id, blob);
+  await assert.rejects(() => s.confirmarImportacao({ cotacaoId: c.id, plano, arquivo: new Blob(["xml"]), anexoPdf: new Blob(["pdf"]) }), /sem espaço/);
+  assert.equal(await mem.lerAnexo(plano.documento.anexoId), undefined);
+  assert.equal(s.estado.documentos.length, 0);
+  assert.equal(s.cotacao(c.id).propostas.length, 0);
+});
 test("PDF duplicado: segundo import com o mesmo hash é recusado e nada é gravado", async () => {
   const s = await novoStore();
   const a = await prepara(s, "mesmo-hash");
