@@ -39,3 +39,10 @@ test("Pages API rejeita token válido com e-mail de outra conta antes de tocar n
   assert.equal(r.status, 401);
   assert.equal(dados.size, 0);
 });
+
+test("Pages API identifica PDF quando o celular envia MIME genérico", async () => {
+  const { dados, context } = setup();
+  const r = await onRequestPut(new Request("https://suprimo.test/api/arquivos/gen", { method: "PUT", headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/octet-stream" }, body: "%PDF-1.7\nconteudo" }), context("gen"));
+  assert.equal(r.status, 204);
+  assert.equal(dados.get("uid-teste/gen").type, "application/pdf");
+});
