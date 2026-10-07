@@ -12,14 +12,6 @@ export function criarAdaptadorFirebase({ db, uid, sdk, local }) {
   const colecao = (nome) => sdk.collection(db, "users", uid, nome);
   const documento = (nome, id) => sdk.doc(db, "users", uid, nome, id);
 
-  async function gravarLote(nome, valores) {
-    for (let inicio = 0; inicio < valores.length; inicio += 450) {
-      const lote = sdk.writeBatch(db);
-      for (const valor of valores.slice(inicio, inicio + 450)) lote.set(documento(nome, valor.id), valor);
-      await lote.commit();
-    }
-  }
-
   return {
     persistente: true,
     async carregar() {
@@ -54,11 +46,17 @@ export function criarAdaptadorFirebase({ db, uid, sdk, local }) {
       if (cotacoes.length || fornecedores.length || documentos.length || ajustes.some((a) => a.id === ID_AJUSTES)) {
         throw new Error("Já existem dados na nuvem. A migração inicial foi interrompida para não sobrescrevê-los.");
       }
-      await gravarLote("fornecedores", dados.fornecedores ?? []);
-      await gravarLote("cotacoes", dados.cotacoes ?? []);
-      await gravarLote("documentos", dados.documentos ?? []);
-      if (dados.ajustes) await sdk.setDoc(documento("ajustes", ID_AJUSTES), { id: ID_AJUSTES, ...dados.ajustes });
-      await this.guardarVersao(dados.versaoEsquema ?? 2);
+      const entradas = [
+        ...(dados.fornecedores ?? []).map((valor) => ["fornecedores", valor]),
+        ...(dados.cotacoes ?? []).map((valor) => ["cotacoes", valor]),
+        ...(dados.documentos ?? []).map((valor) => ["documentos", valor]),
+        ...(dados.ajustes ? [["ajustes", { id: ID_AJUSTES, ...dados.ajustes }]] : []),
+        ["meta", { id: ID_VERSAO, valor: dados.versaoEsquema ?? 2 }],
+      ];
+      if (entradas.length > 450) throw new Error("Há mais de 450 registros para migrar de uma vez. Nenhum dado foi enviado; exporte um backup e reduza os registros antes de tentar novamente.");
+      const lote = sdk.writeBatch(db);
+      for (const [nome, valor] of entradas) lote.set(documento(nome, valor.id), valor);
+      await lote.commit();
     },
     observar(onData, onError = () => {}) {
       const colecoes = ["cotacoes", "fornecedores", "documentos", "ajustes", "meta"];
