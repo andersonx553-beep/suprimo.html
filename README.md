@@ -1,7 +1,7 @@
 # Suprimo
 
 Cotações do almoxarifado: o auxiliar importa e confere orçamentos, compara as propostas e registra o fornecedor selecionado. O mapa em PDF é apresentado pelo responsável ao **síndico**, que assina a aprovação da cotação. O pedido ao fornecedor é feito depois pelo responsável via WhatsApp, fora do Suprimo.
-Site estático em HTML, CSS e JavaScript puro (ES modules). Sem framework, sem build, sem servidor. Os dados ficam no navegador (IndexedDB).
+Site estático em HTML, CSS e JavaScript puro (ES modules), sem build próprio. Cotações, fornecedores e ajustes sincronizam em tempo real pelo Firebase Authentication e Firestore; anexos PDF/XML/imagem continuam no IndexedDB do aparelho em que foram adicionados.
 
 ## Rodar
 
@@ -11,6 +11,20 @@ Módulos ES não abrem por duplo clique; use um servidor estático qualquer na r
     # ou: python3 -m http.server 8000
 
 Abra http://localhost:8000. Na primeira vez, **Carregar demonstração** cria uma cotação de material elétrico com 3 fornecedores (um não cotou um item, outro cotou em unidade diferente). Tudo da demonstração aparece marcado como *Exemplo* e sai com um clique em Ajustes.
+
+## Firebase e sincronização
+
+O app usa o projeto Firebase `suprimo-fb90d`, login Google e Firestore. O acesso está restrito a `andersonx553@gmail.com`, com e-mail verificado. A chave web que aparece em `src/lib/firebase.js` identifica o app; a segurança depende das regras do Firestore, não de esconder essa chave.
+
+Antes de usar o site publicado:
+
+1. Em **Authentication → Sign-in method**, confirme que Google está ativado.
+2. Em **Authentication → Settings → Authorized domains**, inclua o domínio exato onde o Suprimo está hospedado. `localhost` é usado no desenvolvimento.
+3. Em **Firestore Database → Rules**, publique o conteúdo de `firestore.rules`. Até publicar, as leituras e gravações serão negadas.
+4. Publique o site no **Cloudflare Pages**, como o Almox Aqua: conecte este repositório, use `exit 0` como comando de build e `.` como diretório de saída (a raiz do projeto). Depois, em **Authentication → Settings → Authorized domains**, cadastre o domínio `*.pages.dev` exibido pelo Cloudflare (ou seu domínio próprio).
+5. Não é necessário criar Cloud Storage. Os arquivos anexados permanecem locais; para consultá-los em outro dispositivo, será necessário anexá-los novamente nesse aparelho.
+
+No primeiro acesso, se houver dados locais e a nuvem estiver vazia, o Suprimo mostra a quantidade encontrada e pede confirmação antes de copiar os registros. O app também oferece baixar um backup local. Se já houver dados na nuvem, não mescla nem substitui os dados locais automaticamente.
 
 ## Testar
 
@@ -41,7 +55,7 @@ Ao importar o segundo orçamento da mesma cotação, o Suprimo normaliza abrevia
 É só arquivo estático: a raiz do repositório já é o site.
 
 - **GitHub Pages**: Settings → Pages → *Deploy from a branch* → `main` / `(root)`.
-- **Cloudflare Pages**: projeto sem comando de build e com diretório de saída `/`.
+- **Cloudflare Pages**: conecte o repositório; use `exit 0` como comando de build, `.` como diretório de saída e a raiz como diretório do projeto.
 
 ## Estrutura
 
