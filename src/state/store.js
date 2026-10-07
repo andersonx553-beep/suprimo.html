@@ -112,9 +112,9 @@ export function criarStore(adaptador) {
     /**
      * Grava tudo de uma vez: documento (hash único), arquivo, PDF opcional, fornecedor novo, itens novos, proposta e convite.
      * Se algo falhar no meio, desfaz o que já foi gravado e lança o erro: não fica meia importação.
-     * @param {{cotacaoId:string, plano:ReturnType<typeof import('../importacao/aplicar.js').montarImportacao>, arquivo:Blob, anexoPdf?:Blob|null}} entrada
+     * @param {{cotacaoId:string, plano:ReturnType<typeof import('../importacao/aplicar.js').montarImportacao>, arquivo:Blob, anexoPdf?:Blob|null, silencioso?:boolean}} entrada
      */
-    async confirmarImportacao({ cotacaoId, plano, arquivo, anexoPdf = null }) {
+    async confirmarImportacao({ cotacaoId, plano, arquivo, anexoPdf = null, silencioso = false }) {
       const cot = store.cotacao(cotacaoId);
       if (Boolean(plano.anexoPdfMeta) !== Boolean(anexoPdf)) throw new Error("O PDF anexado não corresponde ao plano de importação.");
       try { await adaptador.gravar("documentos", plano.documento); }
@@ -141,7 +141,7 @@ export function criarStore(adaptador) {
       if (plano.fornecedorNovo) estado.fornecedores.push(plano.fornecedor);
       estado.cotacoes[estado.cotacoes.findIndex((c) => c.id === cot.id)] = copia;
       estado.documentos.push(plano.documento);
-      emitir({ origem: "importacao", cotacaoId });
+      emitir({ origem: "importacao", cotacaoId, silencioso });
       return plano.proposta;
     },
 
