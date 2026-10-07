@@ -11,7 +11,7 @@ import { extrairDocumento, tipoDocumento } from "../../importacao/ocr.js";
 import { gerarOrcamentoXml } from "../../importacao/xml.js";
 import { baixarTexto } from "../../lib/arquivo.js";
 import { sha256Hex } from "../../importacao/hash.js";
-import { sugerirCorrespondencias } from "../../importacao/mapear.js";
+import { sugerirCorrespondencias, sugerirPossiveis, semelhanca } from "../../importacao/mapear.js";
 import { validarOrcamento, camposFaltando, verificarDuplicidade } from "../../importacao/validar.js";
 import { montarImportacao } from "../../importacao/aplicar.js";
 import { novoId } from "../../state/store.js";
@@ -40,7 +40,7 @@ export function telaImportar(raiz, { store, rota }) {
     return () => {};
   }
 
-  const e = { fase: "escolher", erro: null, arquivo: null, bytes: null, tipo: null, hash: "", url: "", pdfAnexo: null, pdfBytes: null, pdfUrl: "", dados: null, correspondencia: [], sujo: false, duplicidade: null, abort: null, progresso: null, lote: [], posicao: 0, confirmados: 0 };
+  const e = { fase: "escolher", erro: null, arquivo: null, bytes: null, tipo: null, hash: "", url: "", pdfAnexo: null, pdfBytes: null, pdfUrl: "", dados: null, correspondencia: [], automaticas: 0, sujo: false, duplicidade: null, abort: null, progresso: null, lote: [], posicao: 0, confirmados: 0 };
   let ativo = true;
   const limparUrl = () => { if (e.url) URL.revokeObjectURL(e.url); e.url = ""; };
   const limparPdfUrl = () => { if (e.pdfUrl) URL.revokeObjectURL(e.pdfUrl); e.pdfUrl = ""; };
@@ -123,6 +123,7 @@ export function telaImportar(raiz, { store, rota }) {
       e.bytes = bytes; e.tipo = tipo; e.hash = hash; e.dados = dados;
       e.duplicidade = verificarDuplicidade(store.estado.documentos, { hash, cnpj: dados.fornecedor.cnpj, numero: dados.orcamento.numero });
       e.correspondencia = sugerirCorrespondencias(dados.itens, cot.itens).map((id) => id ?? (cot.itens.length ? "" : "novo"));
+      e.automaticas = cot.itens.length ? e.correspondencia.filter(Boolean).length : 0;
       limparUrl(); e.url = URL.createObjectURL(new Blob([bytes], { type: tipo }));
       e.fase = "conferir"; e.sujo = false; e.pdfAnexo = null; e.pdfBytes = null; limparPdfUrl();
       desenhar();
@@ -137,6 +138,9 @@ export function telaImportar(raiz, { store, rota }) {
 
   // ---------- fase 2: conferência ----------
   const faltando = () => new Set(camposFaltando(e.dados));
+  const possiveis = () => sugerirPossiveis(e.dados.itens, cot.itens, e.correspondencia);
+  const semSimilar = () => e.dados.itens.map((it, i) => ({ it, i })).filter(({ it, i }) => !e.correspondencia[i]
+    && !cot.itens.some((c) => semelhanca(it.descricao, c.descricao) >= 0.5));
   const alertasAtuais = () => {
     const lista = validarOrcamento(e.dados, { hoje: hoje(), nomeArquivo: e.arquivo?.name });
     const nSem = e.dados.itens.filter((_, i) => !e.correspondencia[i]).length;
@@ -226,10 +230,13 @@ export function telaImportar(raiz, { store, rota }) {
             ${d.condicoes.freteTexto ? html`<p class="cartao__nota">Condição de frete no documento: ${d.condicoes.freteTexto}. Confirme se atende o destino da cotação.</p>` : ""}
           </section>
           <section class="cartao"><h2 class="cartao__titulo">Itens <span class="contador" data-contagem>${d.itens.length}</span></h2>
+            ${cot.itens.length ? html`<p class="cartao__nota">${e.automaticas} ${e.automaticas === 1 ? "item ligado" : "itens ligados"} automaticamente por descrição, tipo e medidas. Confira as ligações antes de salvar; descrições com medidas diferentes não são tratadas como o mesmo produto.</p>` : ""}
             <div class="tabela-quadro tabela-quadro--solto"><table class="tabela tabela--lista tabela--conferencia">
               <thead><tr><th class="tabela__num">#</th><th>Código</th><th>Descrição</th><th>Un.</th><th class="tabela__num">Qtd.</th><th class="tabela__num">Unitário</th><th class="tabela__num">Total</th><th>Item da cotação</th><th></th></tr></thead>
               <tbody data-itens>${d.itens.map(linhaItem)}</tbody></table></div>
-            <div class="acoes-linha"><button class="botao" data-add-item>${icone("mais", 16)}Adicionar item</button></div>
+            <div class="acoes-linha"><button class="botao" data-add-item>${icone("mais", 16)}Adicionar item</button>
+              <button class="botao" data-aplicar-possiveis ${possiveis().length ? "" : "hidden"}>Revisar ${possiveis().length} possíveis correspondências</button>
+              <button class="botao" data-novos ${semSimilar().length ? "" : "hidden"}>Revisar ${semSimilar().length} itens sem similar</button></div>
           </section>
           <section class="cartao" data-alertas aria-live="polite">${painelAlertas()}</section>
           <div class="acoes-linha"><button class="botao" data-baixar-xml>Baixar XML conferido</button></div>
@@ -324,25 +331,50 @@ export function telaImportar(raiz, { store, rota }) {
     }));
     const corpo = raiz.querySelector("[data-itens]");
     const redesenharItens = () => { montar(corpo, html`${d.itens.map(linhaItem)}`); raiz.querySelector("[data-contagem]").textContent = d.itens.length; };
+    const atualizarSugestoes = () => {
+      const b = raiz.querySelector("[data-aplicar-possiveis]"), n = raiz.querySelector("[data-novos]");
+      const qtd = possiveis().length, novos = semSimilar().length;
+      b.hidden = !qtd; b.textContent = `Revisar ${qtd} possíveis correspondências`;
+      n.hidden = !novos; n.textContent = `Revisar ${novos} itens sem similar`;
+    };
     corpo.addEventListener("change", (ev) => {
       const tr = ev.target.closest("tr"), i = Number(tr.dataset.i), el = ev.target;
-      if (el.dataset.liga !== undefined) { e.correspondencia[i] = el.value; e.sujo = true; redesenharItens(); atualizarAlertas(); return; }
+      if (el.dataset.liga !== undefined) { e.correspondencia[i] = el.value; e.sujo = true; redesenharItens(); atualizarAlertas(); atualizarSugestoes(); return; }
       const k = el.dataset.item, it = d.itens[i];
       if (k === "quantidade") { it.quantidade = num(el.value); el.value = it.quantidade != null ? numeroBr(it.quantidade) : ""; }
       else if (k === "unitarioCentavos" || k === "totalCentavos") { it[k] = lerCentavos(el.value); el.value = reaisCampo(it[k]); }
       else it[k] = el.value.trim() === "" ? null : el.value.trim();
-      e.sujo = true; atualizarAlertas();
+      e.sujo = true; atualizarAlertas(); atualizarSugestoes();
     });
     corpo.addEventListener("click", (ev) => {
       const b = ev.target.closest("[data-tirar]");
       if (!b) return;
       const i = Number(b.closest("tr").dataset.i);
-      d.itens.splice(i, 1); e.correspondencia.splice(i, 1); e.sujo = true; redesenharItens(); atualizarAlertas();
+      d.itens.splice(i, 1); e.correspondencia.splice(i, 1); e.sujo = true; redesenharItens(); atualizarAlertas(); atualizarSugestoes();
     });
     raiz.querySelector("[data-add-item]").addEventListener("click", () => {
       d.itens.push({ numero: (d.itens.at(-1)?.numero ?? 0) + 1, codigo: null, descricao: "", unidade: null, quantidade: null, unitarioCentavos: null, totalCentavos: null });
-      e.correspondencia.push(cot.itens.length ? "" : "novo"); e.sujo = true; redesenharItens(); atualizarAlertas();
+      e.correspondencia.push(cot.itens.length ? "" : "novo"); e.sujo = true; redesenharItens(); atualizarAlertas(); atualizarSugestoes();
       corpo.querySelector("tr:last-child [data-item='descricao']")?.focus();
+    });
+    raiz.querySelector("[data-aplicar-possiveis]").addEventListener("click", async () => {
+      const lista = possiveis();
+      if (!lista.length) return;
+      const ok = await confirmar({ titulo: "Conferir possíveis correspondências", rotulo: `Ligar ${lista.length} itens`,
+        texto: html`Essas descrições têm medidas iguais, mas podem indicar peças diferentes. Confira os pares antes de ligar:<ul class="alertas-lista">${lista.map((p) => html`<li><strong>${d.itens[p.i].descricao}</strong> → ${p.descricao}</li>`)}</ul>` });
+      if (!ok || !ativo) return;
+      const usados = new Set(e.correspondencia.filter((id) => id && id !== "novo"));
+      for (const p of lista) if (!e.correspondencia[p.i] && !usados.has(p.id)) { e.correspondencia[p.i] = p.id; usados.add(p.id); }
+      e.sujo = true; redesenharItens(); atualizarAlertas(); atualizarSugestoes();
+    });
+    raiz.querySelector("[data-novos]").addEventListener("click", async () => {
+      const lista = semSimilar();
+      if (!lista.length) return;
+      const ok = await confirmar({ titulo: "Adicionar itens à cotação", rotulo: `Adicionar ${lista.length} itens`,
+        texto: html`Não encontrei um produto com a mesma descrição e medidas. Confira os itens que serão criados na cotação:<ul class="alertas-lista">${lista.map(({ it }) => html`<li>${it.descricao}</li>`)}</ul>` });
+      if (!ok || !ativo) return;
+      for (const { i } of lista) if (!e.correspondencia[i]) e.correspondencia[i] = "novo";
+      e.sujo = true; redesenharItens(); atualizarAlertas(); atualizarSugestoes();
     });
     raiz.querySelector("[data-ver-pdf]").addEventListener("click", () => window.open(e.url, "_blank", "noopener"));
     raiz.querySelector("[data-ver-anexo]")?.addEventListener("click", () => { if (e.pdfUrl) window.open(e.pdfUrl, "_blank", "noopener"); });
