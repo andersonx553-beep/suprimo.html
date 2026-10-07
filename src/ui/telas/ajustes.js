@@ -41,7 +41,7 @@ export function telaAjustes(raiz, { store }) {
         </div>
       </section>
       <section class="cartao"><h2 class="cartao__titulo">Dados e backup</h2>
-        <p class="cartao__nota">Cotações, fornecedores e ajustes ficam sincronizados no Firestore. O backup leva esses registros; PDFs, XMLs e imagens anexados ficam só no aparelho em que foram adicionados.</p>
+        <p class="cartao__nota">Cotações, fornecedores e ajustes ficam sincronizados no Firestore. Os anexos são sincronizados pelo armazenamento privado do Cloudflare R2. O backup JSON não inclui os arquivos.</p>
         <div class="acoes-linha">
           <button class="botao" data-exportar>${icone("baixar", 16)}Exportar backup</button>
           <label class="botao">${icone("subir", 16)}Importar backup<input type="file" accept="application/json,.json" hidden data-importar></label>
