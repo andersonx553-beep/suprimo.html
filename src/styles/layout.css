@@ -6,6 +6,7 @@
   background: color-mix(in srgb, var(--cor-fundo) 82%, transparent); backdrop-filter: blur(14px) saturate(1.3); }
 .topo__interno { max-inline-size: var(--largura-max); margin-inline: auto; block-size: var(--altura-topo); padding-inline: var(--esp-6); display: flex; align-items: center; gap: var(--esp-5); }
 .topo__tema { margin-inline-start: auto; }
+.conta-ativa { max-inline-size: 15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cor-texto-3); font-size: var(--texto-xs); }
 
 .principal { position: relative; max-inline-size: var(--largura-max); margin-inline: auto; padding: var(--esp-6) var(--esp-6) var(--esp-12); display: grid; gap: var(--esp-4); align-content: start; min-block-size: calc(100vh - var(--altura-topo) - 4rem); }
 .principal:focus { outline: none; }
@@ -29,6 +30,7 @@
 
 @media (max-width: 48rem) {
   .topo__interno { padding-inline: var(--esp-4); }
+  .conta-ativa { display: none; }
   .navegacao--topo { display: none; }
   .principal { padding: var(--esp-4) var(--esp-4) 6.5rem; }
   .rodape { padding-inline: var(--esp-4); padding-block-end: 5.5rem; }
