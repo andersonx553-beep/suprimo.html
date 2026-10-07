@@ -34,6 +34,8 @@ O formato próprio `orcamentoSuprimo` versão 1 continua disponível para export
 
 Frete ausente permanece **não informado** e suspende a sugestão automática de vencedor enquanto uma proposta comparável tiver esse dado pendente (0,00 só quando incluso). A validade expressa em dias é preservada como texto e pede confirmação da data final. Produtos com marcas ou descrições diferentes exigem que a pessoa confirme a correspondência técnica; o Suprimo não declara equivalência por conta própria. O relatório impresso destaca a seleção registrada, reproduz as descrições originais e reserva a assinatura ao síndico. Sem seleção registrada, a impressão sai marcada como rascunho e não traz campo de aprovação.
 
+Ao importar o segundo orçamento da mesma cotação, o Suprimo normaliza abreviações (por exemplo, `ADAPT`/`ADAP`) e medidas (`40x11/2`/`40MM X 1 1/2`) para ligar automaticamente os pares claros. Medidas divergentes e tipos de produto diferentes não são ligados. A conferência reúne possíveis equivalências em uma lista para aprovação conjunta e permite adicionar em grupo os itens sem similar; as descrições originais permanecem intactas. Revise os pares incertos antes de confirmar, especialmente registros e conexões com características diferentes.
+
 ## Publicar
 
 É só arquivo estático: a raiz do repositório já é o site.

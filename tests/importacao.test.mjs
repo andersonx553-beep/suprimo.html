@@ -4,7 +4,7 @@ import { montarLinhas } from "../src/importacao/linhas.js";
 import { interpretarOrcamento } from "../src/importacao/interpretar.js";
 import { lerDinheiro, lerQuantidade, lerData } from "../src/importacao/numeros.js";
 import { validarOrcamento, camposFaltando, verificarDuplicidade } from "../src/importacao/validar.js";
-import { sugerirCorrespondencias, semelhanca } from "../src/importacao/mapear.js";
+import { sugerirCorrespondencias, sugerirPossiveis, semelhanca } from "../src/importacao/mapear.js";
 import { montarImportacao } from "../src/importacao/aplicar.js";
 import { sha256Hex } from "../src/importacao/hash.js";
 import { criarStore } from "../src/state/store.js";
@@ -153,6 +153,33 @@ test("semelhança e sugestão: liga o que se parece, sem repetir item", () => {
   assert.deepEqual(sugerirCorrespondencias(orc, cot), ["b", "a", null]);
   assert.ok(semelhanca("Cabo flexível 2,5 mm²", "cabo flexivel 2,5 mm²") > 0.9);
   assert.ok(semelhanca("Tubo 25 mm", "Tubo 32 mm") < 0.5);
+});
+test("abreviações e frações dos orçamentos hidráulicos ligam medidas iguais, inclusive linhas trocadas", () => {
+  const antigos = [
+    "BUCHA PVC SOLD RED LG 60 X 40MM", "ADAP PVC SOLD CT 60MM X 2'", "ADAP PVC SOLD CT 50MM X 1 1/2'",
+    "ADAP PVC SOLD CT 40MM X 1 1/4'", "ADAP PVC SOLD CT 40MM X 1 1/2'", "LUVA PVC SOLD MISTA 25MM X 1/2'",
+    "ADAP PVC SOLD CT 75MM X 2 1/2'", "LUVA PVC SOLD DE CORRER 40MM", "LUVA PVC SOLD DE CORRER 50MM",
+    "JOELHO PVC SOLD 90° 25MM", "LUVA PVC SOLD 25MM", "LUVA PVC SOLD 20MM",
+    "REGISTRO PVC SOLD C/ UNIAO 25 MM", "REGISTRO PVC SOLD C/ UNIAO 20MM", "REGISTRO PVC ROSC C/ UNIAO 3/4'",
+    "REGISTRO PVC SOLD C/ UNIAO 40MM", "REGISTRO PVC SOLD C/ UNIAO 32MM", "UNIAO PVC SOLD 40MM",
+  ].map((descricao, i) => ({ id: String(i + 1), descricao, unidade: "PC" }));
+  const novos = [
+    "BUCHA REDUCAO SOLD CURTA 60x50 TIGRE", "ADAPT SOLD CURT C/B. ROSCA 60x2 TIGR",
+    "ADAPT SOLD CURT C/B. ROSC 50X11/2 TI", "ADAPT SOLD CURT C/B. ROSC 40x11/2 TI",
+    "ADAPT SOLD CURT C/B. ROSC 40x11/4 TI", "LUVA SOLD C/ROSC E RED 25x1/2 TIGRE",
+    "ADAPT SOLD CURT C/B. ROSC 75x21/2 TI", "LUVA CORRER P/TUBO SOLD 50 MM TIGRE",
+    "LUVA DE CORRER SOLD 40 MM TIGRE", "JOELHO 90 SOLDAVEL 25 MM TIGRE",
+    "LUVA SOLDAVEL DE 25 MM TIGRE", "LUVA SOLDAVEL DE 20 MM TIGRE",
+    "REGISTRO FECHO RAPIDO 25 MM TIGRE", "REGISTRO FECHO RAPIDO 20 MM TIGRE",
+    "REGISTRO DE ESFERA VS ROSC. 3/4 TIGRE", "REGISTRO FECHO RAPIDO 40 MM TIGRE",
+    "REGISTRO FECHO RAPIDO 32 MM TIGRE", "UNIAO SOLDAVEL DE 40 MM TIGRE",
+    "REGISTRO GAVETA ABNT 1 1/4\" DOCOL", "REGISTRO GAVETA ABNT 2\" DOCOL",
+  ].map((descricao) => ({ descricao, unidade: "UN" }));
+  const ligados = sugerirCorrespondencias(novos, antigos);
+  assert.deepEqual(ligados, [null, "2", "3", "5", "4", null, "7", "9", "8", "10", "11", "12", null, null, null, null, null, "18", null, null]);
+  assert.deepEqual(sugerirPossiveis(novos, antigos, ligados).map((p) => [p.i + 1, p.id]), [[6,"6"],[13,"13"],[14,"14"],[15,"15"],[16,"16"],[17,"17"]]);
+  assert.equal(semelhanca(novos[0].descricao, antigos[0].descricao), 0); // 60x50 ≠ 60x40
+  assert.equal(semelhanca(novos[18].descricao, antigos[3].descricao), 0); // gaveta ≠ adaptador
 });
 
 // ---- montar a proposta ----
