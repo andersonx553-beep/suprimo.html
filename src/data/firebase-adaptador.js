@@ -43,9 +43,8 @@ export function criarAdaptadorFirebase({ db, uid, sdk, local, arquivos }) {
       }
       await local.limparTudo();
     },
-    async sincronizarAnexos(dadosLocais = {}) {
-      const dadosNuvem = await this.carregar();
-      const ids = anexosDosDados({ cotacoes: [...(dadosNuvem.cotacoes ?? []), ...(dadosLocais.cotacoes ?? [])], documentos: [...(dadosNuvem.documentos ?? []), ...(dadosLocais.documentos ?? [])] });
+    async sincronizarAnexos(dadosNuvem) {
+      const ids = anexosDosDados(dadosNuvem);
       for (const id of ids) {
         if (await arquivos.existe(id)) continue;
         const blob = await local.lerAnexo(id);
