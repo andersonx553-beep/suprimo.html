@@ -31,7 +31,7 @@ export function iniciarApp(raiz, store, { usuario, sair } = {}) {
     </div></header>
     <main id="principal" class="principal" tabindex="-1"></main>
     ${navegacao("navegacao navegacao--base")}
-    <footer class="rodape">Cotações, fornecedores e ajustes sincronizam pelo Firestore. PDFs, XMLs e imagens ficam apenas no aparelho em que foram anexados. Confira preços, prazos e cadastro direto com cada fornecedor. CNPJ: <a href="https://brasilapi.com.br" target="_blank" rel="noopener">BrasilAPI</a> · <span class="mono">Versão ${VERSAO}</span> (${NOVIDADE})</footer>`);
+    <footer class="rodape">Cotações, fornecedores e ajustes sincronizam pelo Firestore. PDFs, XMLs e imagens sincronizam pelo Cloudflare R2. Confira preços, prazos e cadastro direto com cada fornecedor. CNPJ: <a href="https://brasilapi.com.br" target="_blank" rel="noopener">BrasilAPI</a> · <span class="mono">Versão ${VERSAO}</span> (${NOVIDADE})</footer>`);
 
   const principal = raiz.querySelector("#principal");
   const botaoTema = raiz.querySelector("[data-tema]");
