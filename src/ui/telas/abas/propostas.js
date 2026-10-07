@@ -83,7 +83,7 @@ export function abaPropostas({ cot, forn, ultimo }) {
         <aside class="propostas__arquivo" aria-label="Arquivo original da proposta">
           <div class="propostas__arquivo-cab"><h3>Arquivo original</h3>
             <label class="botao botao--peq">${icone("anexo", 15)}Anexar PDF ou imagem<input type="file" hidden accept="application/pdf,image/*" data-anexar></label></div>
-          <p class="cartao__nota">Os arquivos ficam neste aparelho; anexos de outro dispositivo não são baixados automaticamente.</p>
+          <p class="cartao__nota">Os anexos ficam sincronizados na nuvem e podem ser abertos em qualquer aparelho conectado.</p>
           <div class="anexos" data-anexos>${(atual.anexos ?? []).map((a) => html`<button class="anexos__item" data-ver="${a.id}">${icone("arquivo", 14)}${a.nome}</button>`)}</div>
           <div class="visualizador" data-visualizador>${atual.anexos?.length ? html`<p class="visualizador__vazio">Escolha um arquivo para abrir aqui ao lado.</p>` : html`<p class="visualizador__vazio">Sem arquivo anexado. Anexe o PDF ou a foto que o fornecedor mandou para conferir enquanto lança.</p>`}</div>
         </aside>
