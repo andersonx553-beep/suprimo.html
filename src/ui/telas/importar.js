@@ -57,7 +57,7 @@ export function telaImportar(raiz, { store, rota }) {
           ${icone("subir", 34)}
           <strong>Arraste o orçamento aqui</strong>
           <span>ou clique para escolher o arquivo</span>
-          <small>PDF, JPG, PNG ou XML de orçamento do Suprimo, até 10 MB. Arquivos digitalizados passam por OCR. Confira os dados antes de confirmar.</small>
+          <small>PDF, JPG, PNG ou XML de orçamento, até 10 MB. Arquivos digitalizados passam por OCR. Confira os dados antes de confirmar.</small>
         </button>
         <input type="file" accept="application/pdf,image/jpeg,image/png,application/xml,text/xml,.pdf,.jpg,.jpeg,.png,.xml" hidden data-arquivo aria-label="Escolher arquivo do orçamento">
       </section>`);
@@ -80,7 +80,7 @@ export function telaImportar(raiz, { store, rota }) {
     const falha = (codigo, mensagem = MENSAGENS[codigo], extra = {}) => { e.fase = "escolher"; e.erro = { codigo, mensagem, ...extra }; if (ativo) desenhar(); };
     if (arquivo.size > LIMITE_BYTES) return falha("grande", "O arquivo passa de 10 MB. Envie um arquivo menor.");
     const extensao = arquivo.name.toLowerCase().match(/\.(pdf|jpe?g|png|xml)$/)?.[1];
-    if (!extensao) return falha("invalido", "Use um arquivo PDF, JPG, PNG ou XML de orçamento do Suprimo.");
+    if (!extensao) return falha("invalido", "Use um arquivo PDF, JPG, PNG ou XML de orçamento.");
     e.abort = new AbortController();
     const controle = e.abort;
     e.fase = "lendo"; e.arquivo = arquivo; e.progresso = null; desenhar();

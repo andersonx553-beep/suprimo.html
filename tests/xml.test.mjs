@@ -48,6 +48,38 @@ test("exemplo de cinco itens importa com frete e total conferidos", () => {
   assert.equal(lido.condicoes.subtotalCentavos + lido.condicoes.freteCentavos, lido.condicoes.totalCentavos);
 });
 
+test("XML externo de orçamento preenche apenas os campos presentes, inclusive atributos", () => {
+  const arquivo = `<cot:quotation xmlns:cot="urn:quote">
+    <cot:supplier><cot:companyName>Hidráulica Centro Ltda</cot:companyName><cot:taxId>12345678000195</cot:taxId></cot:supplier>
+    <cot:header><cot:quotationNumber>COT-45</cot:quotationNumber><cot:issueDate>2026-10-07</cot:issueDate></cot:header>
+    <cot:items><cot:item sku="A25"><cot:description>Tubo PVC 25 mm</cot:description><cot:quantity>12</cot:quantity><cot:unit>UN</cot:unit><cot:unitPrice>10.50</cot:unitPrice><cot:lineTotal>126.00</cot:lineTotal></cot:item>
+    <cot:item><cot:description>Joelho 25 mm</cot:description><cot:quantity>4</cot:quantity><cot:unitPrice>2,50</cot:unitPrice></cot:item></cot:items>
+    <cot:totals><cot:subtotal>136.00</cot:subtotal><cot:shippingCost>15.00</cot:shippingCost><cot:grandTotal>151.00</cot:grandTotal></cot:totals>
+  </cot:quotation>`;
+  assert.equal(tipoDocumento(bytes(arquivo)), "application/xml");
+  const lido = lerOrcamentoXml(bytes(arquivo), { DOMParserImpl: DOMParser });
+  assert.equal(lido.diagnostico.formato, "externo");
+  assert.equal(lido.fornecedor.razaoSocial, "Hidráulica Centro Ltda");
+  assert.equal(lido.orcamento.numero, "COT-45");
+  assert.equal(lido.orcamento.validade, null);
+  assert.deepEqual(lido.itens.map((i) => [i.codigo, i.quantidade, i.unitarioCentavos, i.totalCentavos]), [["A25", 12, 1050, 12600], [null, 4, 250, null]]);
+  assert.deepEqual([lido.condicoes.subtotalCentavos, lido.condicoes.freteCentavos, lido.condicoes.totalCentavos], [13600, 1500, 15100]);
+});
+
+test("XML com cliente não confunde comprador com fornecedor e mantém preço desconhecido vazio", () => {
+  const lido = lerOrcamentoXml(bytes(`<orcamento><cliente><nome>Condomínio Sol</nome></cliente><fornecedor><nome>Loja Alfa</nome></fornecedor><numero>88</numero><itens><produto><descricao>Registro</descricao><qtd>2</qtd></produto></itens></orcamento>`), { DOMParserImpl: DOMParser });
+  assert.equal(lido.fornecedor.razaoSocial, "Loja Alfa");
+  assert.equal(lido.itens[0].unitarioCentavos, null);
+  assert.equal(lido.itens[0].quantidade, 2);
+});
+
+test("nota fiscal e XML sem itens de orçamento não são importados como proposta", () => {
+  for (const arquivo of [
+    `<nfeProc><NFe><infNFe><emit><xNome>Empresa</xNome></emit><det><prod><xProd>Tubo</xProd></prod></det></infNFe></NFe></nfeProc>`,
+    `<orcamento><fornecedor><nome>Loja</nome></fornecedor><cliente><nome>Cliente</nome></cliente></orcamento>`,
+  ]) assert.throws(() => lerOrcamentoXml(bytes(arquivo), { DOMParserImpl: DOMParser }), (e) => e.codigo === "xml_invalido");
+});
+
 test("XML estranho, entidades, valores malformados e datas inválidas são recusados", () => {
   const xml = gerarOrcamentoXml(dados), opts = { DOMParserImpl: DOMParser };
   for (const entrada of [

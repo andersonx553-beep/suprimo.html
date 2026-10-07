@@ -16,7 +16,7 @@ export function tipoDocumento(bytes) {
   if (bytes.length > 8 && bytes[0] === 0x89 && [0x50, 0x4e, 0x47].every((v, i) => bytes[i + 1] === v)) return "image/png";
   if (bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
   const inicio = new TextDecoder().decode(bytes.subarray(0, 512)).replace(/^\uFEFF/, "").trimStart();
-  if (/^<\?xml\b|^<orcamentoSuprimo\b/i.test(inicio)) return "application/xml";
+  if (/^<\?xml\b|^<[a-z_][\w.:-]*(?:\s|>|\/)/i.test(inicio)) return "application/xml";
   return null;
 }
 

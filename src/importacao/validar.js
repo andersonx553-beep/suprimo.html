@@ -36,7 +36,7 @@ export function validarOrcamento(d, { hoje, nomeArquivo = "" }) {
   if (d.diagnostico?.metodo === "xml") add("xml-conferencia", "info", "itens", "XML de orçamento: confira os itens e condições antes de confirmar.");
 
   if (f.cnpj && !cnpjValido(f.cnpj)) add("cnpj", "erro", "fornecedor.cnpj", "O CNPJ não passa na conferência dos dígitos verificadores. Confira com o PDF.");
-  if (!itens.length) add("sem-itens", "erro", "itens", "A leitura não encontrou itens. Confira o arquivo, adicione as linhas manualmente ou importe um XML de orçamento do Suprimo.");
+  if (!itens.length) add("sem-itens", "erro", "itens", "A leitura não encontrou itens. Confira o arquivo e adicione as linhas manualmente.");
   if (c.freteCentavos == null) add("frete-pendente", "aviso", "condicoes.freteCentavos", "O frete não foi informado. Confirme com o fornecedor antes de comparar o custo final; informe R$ 0,00 apenas se for incluso.");
   if (!o.validade && o.validadeTexto) add("validade-relativa", "aviso", "orcamento.validade", `Validade informada como ${o.validadeTexto}; confirme até quando a proposta vale.`);
   const numeroArquivo = nomeArquivo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/(?:cotacao|proposta|orcamento)\s*(?:n[ºo.]*)?[\s._-]*(\d{2,7})/i)?.[1];

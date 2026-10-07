@@ -1,5 +1,5 @@
-// Formato XML próprio de orçamento do Suprimo (não é XML de NF-e).
-// Valores monetários são centavos inteiros; datas são AAAA-MM-DD; quantidade usa ponto decimal.
+// Importação de orçamento: o formato próprio preserva centavos; outros XMLs são mapeados
+// por campos explícitos e passam pela mesma conferência antes de salvar.
 import { ErroOrcamento } from "./extrair.js";
 
 const erro = (mensagem) => new ErroOrcamento("xml_invalido", mensagem);
@@ -27,7 +27,101 @@ function data(valor, campo) {
   return valor;
 }
 
-/** A origem precisa ser um XML no formato documentado; nenhum XML fiscal é interpretado como orçamento. */
+const chave = (s) => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+const nome = (el) => chave(el?.localName || el?.tagName?.split(":").at(-1));
+const procurar = (el, nomes) => filhos(el).find((x) => nomes.includes(nome(x))) ?? null;
+const valor = (el, nomes) => {
+  const direto = procurar(el, nomes)?.textContent?.trim();
+  if (direto) return direto;
+  return Array.from(el?.attributes ?? []).find((a) => nomes.includes(chave(a.localName || a.name)))?.value?.trim() || null;
+};
+const bloco = (raiz, nomes) => {
+  const pilha = [raiz];
+  let visitados = 0;
+  while (pilha.length) {
+    const atual = pilha.shift();
+    if (++visitados > 10000) throw erro("O XML tem elementos demais para leitura segura.");
+    if (nomes.includes(nome(atual))) return atual;
+    pilha.push(...filhos(atual));
+  }
+  return null;
+};
+const centavos = (v) => {
+  if (v == null) return null;
+  let s = v.replace(/^\s*R\$\s*/i, "").replace(/\s/g, "");
+  if (s.includes(",") && s.includes(".")) s = s.lastIndexOf(",") > s.lastIndexOf(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+  else s = s.replace(",", ".");
+  return /^\d{1,12}(?:\.\d{1,6})?$/.test(s) && Number.isSafeInteger(Math.round(Number(s) * 100)) ? Math.round(Number(s) * 100) : null;
+};
+const decimal = (v) => v && /^\d{1,9}(?:[.,]\d{1,6})?$/.test(v.trim()) && Number(v.replace(",", ".")) > 0 ? Number(v.replace(",", ".")) : null;
+const dataLivre = (v) => {
+  if (!v) return null;
+  const s = /^\d{2}\/\d{2}\/\d{4}$/.test(v) ? `${v.slice(6)}-${v.slice(3, 5)}-${v.slice(0, 2)}` : v.slice(0, 10);
+  try { return data(s, "Data"); } catch { return null; }
+};
+
+function lerXmlOrcamentoDiverso(raiz) {
+  // Uma NF-e comprova operação fiscal; seus valores não representam proposta de orçamento.
+  if (bloco(raiz, ["infnfe"])) throw erro("Este XML é de nota fiscal. Envie o XML do orçamento do fornecedor para importar uma proposta.");
+  const f = bloco(raiz, ["fornecedor", "supplier", "vendor", "seller", "emitente"]);
+  const cab = bloco(raiz, ["header", "cabecalho"]) ?? bloco(raiz, ["orcamento", "cotacao", "proposta", "quotation", "quote"]) ?? raiz;
+  const c = bloco(raiz, ["condicoes", "conditions", "resumo", "totais", "totals", "summary"]) ?? cab;
+  const itensBloco = bloco(raiz, ["itens", "items", "produtos", "products", "linhas", "lines", "detalhes"]);
+  const buscaItens = itensBloco ?? raiz;
+  const itens = [];
+  const pilha = [buscaItens];
+  let visitados = 0;
+  while (pilha.length) {
+    const el = pilha.shift();
+    if (++visitados > 10000) throw erro("O XML tem elementos demais para leitura segura.");
+    if (["item", "produto", "product", "linha", "line", "detalhe"].includes(nome(el))) {
+      const descricao = valor(el, ["descricao", "description", "nome", "name", "xprod"]);
+      if (descricao) {
+        itens.push({
+          numero: itens.length + 1,
+          codigo: valor(el, ["codigo", "code", "sku", "cprod"]), descricao,
+          unidade: valor(el, ["unidade", "unit", "ucom"]),
+          quantidade: decimal(valor(el, ["quantidade", "quantity", "qtd", "qty", "qcom"])),
+          unitarioCentavos: centavos(valor(el, ["precounitario", "valorunitario", "unitprice", "preco", "vuncom"])),
+          totalCentavos: centavos(valor(el, ["valortotal", "totalitem", "linetotal", "total", "vprod"])),
+        });
+        continue;
+      }
+    }
+    pilha.push(...filhos(el));
+  }
+  if (!itens.length) throw erro("Não identifiquei os itens deste XML de orçamento. Envie um exemplo para adaptar a leitura.");
+  const fornecedor = {
+    razaoSocial: valor(f, ["razaosocial", "nome", "xnome", "companyname", "name"]),
+    nomeFantasia: valor(f, ["nomefantasia", "xfant", "fantasia"]),
+    cnpj: valor(f, ["cnpj", "taxid"]), telefone: valor(f, ["telefone", "phone", "fone"]),
+    whatsapp: valor(f, ["whatsapp"]), email: valor(f, ["email", "emailaddress"]),
+  };
+  // Sem bloco de fornecedor, só campos que dizem expressamente "fornecedor" são atribuídos.
+  if (!f) fornecedor.razaoSocial = valor(raiz, ["nomefornecedor", "fornecedornome", "suppliername"]);
+  const freteTipo = valor(c, ["fretetipo", "tipofrete", "shippingtype"]);
+  return {
+    versao: 1, fornecedor,
+    orcamento: {
+      numero: valor(cab, ["numeroorcamento", "numeroproposta", "numerocotacao", "quotationnumber", "numero", "number"]),
+      emissao: dataLivre(valor(cab, ["dataemissao", "emissao", "issuedate", "date"])),
+      validade: dataLivre(valor(cab, ["datavalidade", "validade", "validuntil", "expirydate"])),
+      validadeDias: null, validadeTexto: null, vendedor: valor(cab, ["vendedor", "salesperson"]),
+    },
+    condicoes: {
+      prazoEntrega: valor(c, ["prazoentrega", "deliverytime", "entrega"]), prazoEntregaDias: null,
+      pagamento: valor(c, ["pagamento", "condicaopagamento", "paymentterms"]), pagamentoDias: null,
+      freteTipo: ["CIF", "FOB"].includes(freteTipo?.toUpperCase()) ? freteTipo.toUpperCase() : null,
+      freteCentavos: centavos(valor(c, ["valorfrete", "frete", "shippingcost"])), freteTexto: null,
+      descontoCentavos: centavos(valor(c, ["valordesconto", "desconto", "discountamount"])), descontoPercentual: null,
+      subtotalCentavos: centavos(valor(c, ["subtotal", "valorsubtotal", "productstotal"])),
+      totalCentavos: centavos(valor(c, ["valortotal", "totalgeral", "grandtotal", "total"])),
+    },
+    itens, diagnostico: { metodo: "xml", formato: "externo", revisaoObrigatoria: true, fretesVistos: [] },
+  };
+}
+
+/** Lê XML próprio ou estrutura de orçamento com campos reconhecíveis; exige conferência. */
 export function lerOrcamentoXml(bytes, { DOMParserImpl = globalThis.DOMParser } = {}) {
   if (bytes.length > limite) throw erro("O XML passa de 10 MB.");
   let origem;
@@ -36,10 +130,10 @@ export function lerOrcamentoXml(bytes, { DOMParserImpl = globalThis.DOMParser } 
   if (/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(origem)) throw erro("Por segurança, XML com DTD ou entidades externas não é aceito.");
   if (!DOMParserImpl) throw erro("Este navegador não oferece suporte à leitura de XML.");
   const xml = new DOMParserImpl().parseFromString(origem, "application/xml");
-  if (xml.getElementsByTagName("parsererror").length || xml.documentElement?.tagName !== "orcamentoSuprimo" || xml.documentElement.getAttribute("versao") !== "1") {
-    throw erro("XML inválido. Use um orçamento XML do Suprimo, versão 1 (não é XML de NF-e).");
-  }
+  if (xml.getElementsByTagName("parsererror").length || !xml.documentElement) throw erro("XML inválido ou malformado.");
   const raiz = xml.documentElement;
+  if (raiz.tagName !== "orcamentoSuprimo") return lerXmlOrcamentoDiverso(raiz);
+  if (raiz.getAttribute("versao") !== "1") throw erro("Versão do XML do Suprimo não suportada.");
   const f = filho(raiz, "fornecedor"), o = filho(raiz, "orcamento"), c = filho(raiz, "condicoes"), itensEl = filho(raiz, "itens");
   if (!f || !o || !c || !itensEl) throw erro("Faltam os blocos fornecedor, orcamento, condicoes ou itens.");
   const itens = lista(itensEl, "item").map((item, i) => {
