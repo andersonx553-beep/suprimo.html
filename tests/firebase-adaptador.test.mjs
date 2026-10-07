@@ -71,6 +71,13 @@ test("migração inicial não substitui registros que já estejam na nuvem", asy
   assert.equal((await a.carregar()).cotacoes[0].numero, "COT-0001");
 });
 
+test("migração acima do limite atômico falha antes de gravar qualquer registro", async () => {
+  const f = firebaseFalso(), a = criarAdaptadorFirebase({ db: {}, uid: "u3", sdk: f.sdk, local: localFalso() });
+  const cotacoes = Array.from({ length: 451 }, (_, i) => ({ id: `c${i}`, numero: `COT-${i}` }));
+  await assert.rejects(() => a.importarInicial({ cotacoes, fornecedores: [] }), /mais de 450 registros/);
+  assert.equal(f.dados.size, 0);
+});
+
 test("Firestore envia snapshots consolidados com os dados recebidos", async () => {
   const f = firebaseFalso(), a = criarAdaptadorFirebase({ db: {}, uid: "u2", sdk: f.sdk, local: localFalso() });
   let remoto;
