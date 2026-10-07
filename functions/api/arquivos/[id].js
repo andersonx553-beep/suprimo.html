@@ -13,10 +13,10 @@ async function verificarToken(request, env) {
   let cabecalho, claims;
   try { cabecalho = JSON.parse(new TextDecoder().decode(b64url(partes[0]))); claims = JSON.parse(new TextDecoder().decode(b64url(partes[1]))); } catch { throw new Error("Sessão inválida. Entre novamente."); }
   const agora = Math.floor(Date.now() / 1000), projeto = env.FIREBASE_PROJECT_ID;
-  if (cabecalho.alg !== "RS256" || !cabecalho.kid || !projeto || claims.aud !== projeto || claims.iss !== `https://securetoken.google.com/${projeto}` || !claims.sub || claims.sub.length > 128 || claims.exp <= agora || claims.iat > agora || claims.auth_time > agora || claims.email?.toLowerCase() !== EMAIL_AUTORIZADO || claims.email_verified !== true) throw new Error("A conta ou a sessão não tem autorização para estes arquivos.");
+  if (cabecalho.alg !== "RS256" || !cabecalho.kid || !projeto || claims.aud !== projeto || claims.iss !== `https://securetoken.google.com/${projeto}` || typeof claims.sub !== "string" || !claims.sub || claims.sub.length > 128 || !Number.isFinite(claims.exp) || !Number.isFinite(claims.iat) || !Number.isFinite(claims.auth_time) || claims.exp <= agora || claims.iat > agora + 60 || claims.auth_time > agora || claims.email?.toLowerCase() !== EMAIL_AUTORIZADO || claims.email_verified !== true) throw new Error("A conta ou a sessão não tem autorização para estes arquivos.");
   const key = new Request(JWKS_URL), cache = caches.default;
   let jwks = await cache.match(key);
-  if (!jwks) { const upstream = await fetch(JWKS_URL); if (!upstream.ok) throw new Error("Não foi possível validar a sessão. Tente novamente."); jwks = new Response(await upstream.clone().text(), { headers: { "Cache-Control": "public, max-age=3600" } }); await cache.put(key, jwks.clone()); }
+  if (!jwks) { const upstream = await fetch(JWKS_URL); if (!upstream.ok) throw new Error("Não foi possível validar a sessão. Tente novamente."); jwks = new Response(await upstream.clone().text(), { headers: { "Cache-Control": upstream.headers.get("Cache-Control") || "public, max-age=300" } }); await cache.put(key, jwks.clone()); }
   const chave = (await jwks.json()).keys.find((k) => k.kid === cabecalho.kid && k.alg === "RS256");
   if (!chave) throw new Error("Chave de sessão inválida. Entre novamente.");
   const pub = await crypto.subtle.importKey("jwk", chave, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
@@ -30,9 +30,23 @@ async function tratar(request, context) {
   const bucket = context.env.ARQUIVOS; if (!bucket) return resposta(503, "Armazenamento de arquivos não configurado no Cloudflare Pages.");
   const key = `${uid}/${id}`;
   if (request.method === "PUT") {
-    const tipo = (request.headers.get("Content-Type") || "").split(";")[0].trim().toLowerCase();
-    if (!MIME_PERMITIDOS.has(tipo)) return resposta(415, "Tipo de arquivo não permitido.");
+    const declarado = (request.headers.get("Content-Type") || "").split(";")[0].trim().toLowerCase();
     const corpo = await request.arrayBuffer(); if (!corpo.byteLength || corpo.byteLength > MAX_BYTES) return resposta(413, "O arquivo deve ter até 25 MB.");
+    let tipo = declarado;
+    if (tipo === "application/octet-stream" || !tipo) {
+      const inicio = new Uint8Array(corpo).slice(0, 512);
+      const texto = new TextDecoder().decode(inicio).replace(/^\uFEFF/, "").trimStart();
+      if (texto.startsWith("%PDF-")) tipo = "application/pdf";
+      else if (inicio.length >= 8 && [137, 80, 78, 71, 13, 10, 26, 10].every((b, i) => inicio[i] === b)) tipo = "image/png";
+      else if (inicio[0] === 255 && inicio[1] === 216 && inicio[2] === 255) tipo = "image/jpeg";
+      else if (texto.startsWith("GIF8")) tipo = "image/gif";
+      else if (texto.startsWith("BM")) tipo = "image/bmp";
+      else if (texto.startsWith("RIFF") && texto.slice(8, 12) === "WEBP") tipo = "image/webp";
+      else if (texto.startsWith("<?xml") || (texto.startsWith("<") && !texto.includes("\0"))) tipo = "application/xml";
+    }
+    if (tipo === "image/jpg") tipo = "image/jpeg";
+    if (tipo.endsWith("+xml")) tipo = "application/xml";
+    if (!MIME_PERMITIDOS.has(tipo)) return resposta(415, "Tipo de arquivo não permitido.");
     await bucket.put(key, corpo, { httpMetadata: { contentType: tipo, cacheControl: "private, no-store" } });
     return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
   }
@@ -42,7 +56,7 @@ async function tratar(request, context) {
   }
   if (request.method === "GET") {
     const objeto = await bucket.get(key); if (!objeto) return resposta(404, "Arquivo não encontrado na nuvem.");
-    const headers = new Headers(); objeto.writeHttpMetadata(headers); headers.set("Cache-Control", "private, no-store"); headers.set("X-Content-Type-Options", "nosniff"); headers.set("Content-Disposition", "inline");
+    const headers = new Headers(); objeto.writeHttpMetadata(headers); headers.set("Cache-Control", "private, no-store"); headers.set("X-Content-Type-Options", "nosniff"); headers.set("Content-Disposition", "inline"); headers.set("Content-Security-Policy", "sandbox");
     return new Response(objeto.body, { headers });
   }
   if (request.method === "DELETE") { await bucket.delete(key); return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } }); }
