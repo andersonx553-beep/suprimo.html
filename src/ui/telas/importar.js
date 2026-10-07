@@ -1,4 +1,4 @@
-// Importar orçamento: escolher PDF/JPG/PNG/XML → ler → conferir ao lado do arquivo → confirmar.
+// Importar orçamento: escolher PDF/JPG/PNG ou até três XMLs → conferir cada arquivo → confirmar.
 // Nada é salvo antes de "Confirmar orçamento".
 import { html, montar } from "../../lib/html.js";
 import { icone } from "../../lib/icones.js";
@@ -32,7 +32,7 @@ const num = (t) => { const n = Number(String(t).replace(/\./g, "").replace(",", 
 
 /** @returns {() => void} limpeza */
 export function telaImportar(raiz, { store, rota }) {
-  const cot = store.cotacao(rota.numero);
+  let cot = store.cotacao(rota.numero);
   const voltarPara = linkCotacao(rota.numero, "propostas");
   if (!cot || estaEncerrada(cot.status)) {
     montar(raiz, estadoVazio({ icone: "cotacoes", titulo: !cot ? "Cotação não encontrada" : `Cotação ${rotuloStatus(cot.status).toLowerCase()}`,
@@ -40,10 +40,16 @@ export function telaImportar(raiz, { store, rota }) {
     return () => {};
   }
 
-  const e = { fase: "escolher", erro: null, arquivo: null, bytes: null, tipo: null, hash: "", url: "", pdfAnexo: null, pdfBytes: null, pdfUrl: "", dados: null, correspondencia: [], sujo: false, duplicidade: null, abort: null, progresso: null };
+  const e = { fase: "escolher", erro: null, arquivo: null, bytes: null, tipo: null, hash: "", url: "", pdfAnexo: null, pdfBytes: null, pdfUrl: "", dados: null, correspondencia: [], sujo: false, duplicidade: null, abort: null, progresso: null, lote: [], posicao: 0, confirmados: 0 };
   let ativo = true;
   const limparUrl = () => { if (e.url) URL.revokeObjectURL(e.url); e.url = ""; };
   const limparPdfUrl = () => { if (e.pdfUrl) URL.revokeObjectURL(e.pdfUrl); e.pdfUrl = ""; };
+  const emLote = () => e.lote.length > 1;
+  const proximo = () => {
+    limparUrl(); limparPdfUrl();
+    if (++e.posicao < e.lote.length) receber(e.lote[e.posicao]);
+    else ir(voltarPara);
+  };
 
   // ---------- fase 1: escolher o arquivo ----------
   function desenharEscolher() {
@@ -53,20 +59,35 @@ export function telaImportar(raiz, { store, rota }) {
       <header class="pagina__cab"><div><p class="pagina__sobre">${cot.numero} · ${cot.titulo}</p><h1 class="pagina__titulo">Importar orçamento</h1></div></header>
       <section class="cartao">
         ${e.erro ? html`<p class="faixa" data-tom="perigo" role="alert">${icone("alerta", 16)}<span>${e.erro.mensagem}${dup?.onde ? html` <a href="${dup.onde}">Abrir a proposta</a>` : ""}</span></p>` : ""}
+        ${emLote() ? html`<p class="faixa" data-tom="info">Arquivo ${e.posicao + 1} de ${e.lote.length} · ${e.confirmados} ${e.confirmados === 1 ? "proposta confirmada" : "propostas confirmadas"} nesta seleção.</p>` : ""}
         <button type="button" class="dropzone" data-escolher>
           ${icone("subir", 34)}
-          <strong>Arraste o orçamento aqui</strong>
-          <span>ou clique para escolher o arquivo</span>
-          <small>PDF, JPG, PNG ou XML de orçamento, até 10 MB. Arquivos digitalizados passam por OCR. Confira os dados antes de confirmar.</small>
+          <strong>Arraste os orçamentos aqui</strong>
+          <span>ou clique para escolher até 3 XMLs juntos</span>
+          <small>Também aceita um PDF, JPG ou PNG. Até 10 MB por arquivo. Cada orçamento é conferido e confirmado separadamente.</small>
         </button>
-        <input type="file" accept="application/pdf,image/jpeg,image/png,application/xml,text/xml,.pdf,.jpg,.jpeg,.png,.xml" hidden data-arquivo aria-label="Escolher arquivo do orçamento">
+        <input type="file" accept="application/pdf,image/jpeg,image/png,application/xml,text/xml,.pdf,.jpg,.jpeg,.png,.xml" multiple hidden data-arquivo aria-label="Escolher até três arquivos XML de orçamento">
+        ${emLote() ? html`<button class="botao" data-pular>${e.posicao + 1 < e.lote.length ? "Pular este arquivo e ler o próximo" : "Voltar às propostas"}</button>` : ""}
       </section>`);
     const entrada = raiz.querySelector("[data-arquivo]"), zona = raiz.querySelector("[data-escolher]");
     zona.addEventListener("click", () => entrada.click());
-    entrada.addEventListener("change", () => { const f = entrada.files[0]; entrada.value = ""; receber(f); });
+    entrada.addEventListener("change", () => { const arquivos = Array.from(entrada.files); entrada.value = ""; receberSelecao(arquivos); });
     zona.addEventListener("dragover", (ev) => { ev.preventDefault(); zona.dataset.arrastando = "true"; });
     zona.addEventListener("dragleave", () => { zona.dataset.arrastando = "false"; });
-    zona.addEventListener("drop", (ev) => { ev.preventDefault(); zona.dataset.arrastando = "false"; receber(ev.dataTransfer?.files?.[0]); });
+    zona.addEventListener("drop", (ev) => { ev.preventDefault(); zona.dataset.arrastando = "false"; receberSelecao(Array.from(ev.dataTransfer?.files ?? [])); });
+    raiz.querySelector("[data-pular]")?.addEventListener("click", proximo);
+  }
+
+  function receberSelecao(arquivos) {
+    if (!arquivos.length) return;
+    e.erro = null;
+    if (arquivos.length > 3 || (arquivos.length > 1 && arquivos.some((a) => !/\.xml$/i.test(a.name)))) {
+      e.lote = []; e.posicao = 0; e.confirmados = 0;
+      e.erro = { codigo: "invalido", mensagem: "Selecione até 3 XMLs juntos. PDF, JPG ou PNG devem ser importados individualmente." };
+      desenharEscolher(); return;
+    }
+    e.lote = arquivos; e.posicao = 0; e.confirmados = 0;
+    receber(arquivos[0]);
   }
 
   function desenharLendo() {
@@ -168,7 +189,7 @@ export function telaImportar(raiz, { store, rota }) {
     const d = e.dados;
     montar(raiz, html`
       <a class="voltar" href="${voltarPara}">${icone("voltar", 16)}Propostas de ${cot.numero}</a>
-      <header class="pagina__cab"><div><p class="pagina__sobre">${cot.numero} · ${cot.titulo}</p><h1 class="pagina__titulo">Conferir orçamento</h1></div>
+      <header class="pagina__cab"><div><p class="pagina__sobre">${cot.numero} · ${cot.titulo}${emLote() ? ` · orçamento ${e.posicao + 1} de ${e.lote.length}` : ""}</p><h1 class="pagina__titulo">Conferir orçamento</h1></div>
         <p class="conferir__arquivo">${icone("arquivo", 16)}${e.arquivo.name}</p></header>
       <button type="button" class="faixa faixa--botao" data-resumo-alertas></button>
       <div class="conferencia"><div class="conferencia__grade">
@@ -217,8 +238,8 @@ export function telaImportar(raiz, { store, rota }) {
       <div class="barra-acoes" role="group" aria-label="Ações da conferência">
         <button class="botao" data-ver-pdf aria-label="Ver arquivo em outra aba">${icone("arquivo", 16)}<span class="so-largo">Ver ${e.tipo === "application/xml" ? "XML" : "arquivo"}</span></button>
         <span class="espaco"></span>
-        <button class="botao" data-cancelar>Cancelar</button>
-        <button class="botao botao--destaque" data-confirmar>${icone("ok", 16)}Confirmar orçamento</button>
+        <button class="botao" data-cancelar>${emLote() ? "Pular este orçamento" : "Cancelar"}</button>
+        <button class="botao botao--destaque" data-confirmar>${icone("ok", 16)}${emLote() && e.posicao + 1 < e.lote.length ? "Confirmar e ler próximo" : "Confirmar orçamento"}</button>
       </div>`);
     ligarConferir();
     atualizarFornecedorNota();
@@ -356,7 +377,7 @@ export function telaImportar(raiz, { store, rota }) {
 
   async function cancelar() {
     if (e.sujo && !(await confirmar({ titulo: "Descartar esta conferência?", texto: "Você alterou dados ou anexou um PDF. Nada foi salvo e as mudanças serão perdidas.", rotulo: "Descartar", perigo: true }))) return;
-    ir(voltarPara);
+    if (emLote()) proximo(); else ir(voltarPara);
   }
 
   async function confirmarOrcamento() {
@@ -383,15 +404,17 @@ export function telaImportar(raiz, { store, rota }) {
     botao.disabled = true;
     try {
       await store.confirmarImportacao({ cotacaoId: cot.id, plano, arquivo: new Blob([e.bytes], { type: e.tipo }),
-        anexoPdf: e.pdfBytes ? new Blob([e.pdfBytes], { type: "application/pdf" }) : null });
+        anexoPdf: e.pdfBytes ? new Blob([e.pdfBytes], { type: "application/pdf" }) : null, silencioso: emLote() });
     } catch (erro) {
       botao.disabled = false;
       avisar(erro.message === "Este orçamento já foi importado." ? erro.message : "Não foi possível salvar o orçamento. Nada foi gravado. Tente de novo.");
       return;
     }
+    cot = store.cotacao(rota.numero);
     selecionarProposta(cot.id, plano.proposta.id);
+    e.confirmados++;
     avisar(`Orçamento confirmado: proposta de ${plano.fornecedor.nome}${plano.fornecedorNovo ? " (fornecedor novo cadastrado)" : ""}.`);
-    ir(voltarPara);
+    if (emLote()) proximo(); else ir(voltarPara);
   }
 
   function desenhar() {

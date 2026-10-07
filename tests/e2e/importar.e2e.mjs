@@ -21,6 +21,11 @@ const TEXTO = arq("orcamento.txt", "isto não é um pdf");
 const FALSO = arq("falso.pdf", "isto também não é um pdf");
 const GRANDE = arq("grande.pdf", Buffer.concat([Buffer.from("%PDF-1.4\n"), Buffer.alloc(10 * 1024 * 1024 + 10)]));
 const COPIA = arq("copia-do-mesmo-orcamento.pdf", Buffer.concat([fs.readFileSync(VALIDO), Buffer.from("\n%% copia com bytes diferentes\n")]));
+const XMLS = [1, 2, 3, 4].map((n) => arq(`lote-${n}.xml`, fs.readFileSync(FIX + "orcamento-hidraulica-exemplo.xml", "utf8")
+  .replace(/<razaoSocial>[^<]+<\/razaoSocial>/, `<razaoSocial>Fornecedor ${n}</razaoSocial>`)
+  .replace(/<nomeFantasia>[^<]+<\/nomeFantasia>/, `<nomeFantasia>Fornecedor ${n}</nomeFantasia>`)
+  .replace(/<cnpj>[^<]+<\/cnpj>/, "")
+  .replace(/<numero>HN-2026-104<\/numero>/, `<numero>HN-2026-10${n}</numero>`)));
 
 const browser = await chromium.launch();
 const erros = [];
@@ -132,6 +137,22 @@ ok((await p.locator("[data-fornecedor-nota]").innerText()).includes("já está c
 await p.click("[data-confirmar]"); await naRota(p, "/propostas");
 await p.goto(URL_APP + "#/fornecedores"); await p.waitForSelector("tbody tr");
 ok((await p.locator("tbody tr").count()) === 1, "fornecedor não foi duplicado");
+
+// --- três XMLs selecionados juntos: conferências independentes, uma cotação ---
+await p.goto(URL_APP + "#/cotacoes"); await p.click("[data-nova]"); await p.fill('#fn [name="titulo"]', "Três fornecedores"); await p.click("[data-criar]"); await p.waitForSelector('[data-acao="colar"]');
+await p.goto(URL_APP + "#/cotacoes/COT-0003/importar");
+await p.setInputFiles("[data-arquivo]", XMLS);
+ok((await msg(p)).includes("até 3 XMLs"), "quatro XMLs são recusados sem gravar proposta");
+await p.setInputFiles("[data-arquivo]", XMLS.slice(0, 3));
+for (let n = 1; n <= 3; n++) {
+  await p.waitForSelector(".conferencia");
+  ok((await p.locator(".pagina__sobre").innerText()).includes(`orçamento ${n} de 3`), `conferência do XML ${n}/3`);
+  ok((await p.inputValue('[data-caminho="fornecedor.razaoSocial"]')) === `Fornecedor ${n}`, `fornecedor ${n} isolado`);
+  await p.click("[data-confirmar]");
+}
+await naRota(p, "/propostas"); await p.waitForSelector("[data-proposta]");
+ok((await p.locator('.seletor-proposta__item[role="tab"]').count()) === 3, "três propostas na mesma cotação");
+ok((await p.locator("tr[data-item]").count()) === 5, "itens das propostas seguintes ligados aos da primeira cotação");
 
 // --- persistência e remover libera o PDF ---
 await p.reload(); await p.waitForSelector("tbody tr");

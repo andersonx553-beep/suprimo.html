@@ -250,6 +250,32 @@ test("XML e PDF do mesmo orçamento ficam na mesma proposta e o PDF abre primeir
   assert.ok(await s.lerAnexo(plano.documento.anexoId));
   assert.equal(s.estado.documentos[0].anexoId, plano.documento.anexoId);
 });
+test("três XMLs na mesma cotação criam três propostas sem duplicar itens", async () => {
+  const s = await novoStore();
+  const c = s.criarCotacao({ titulo: "Hidráulica" });
+  const eventos = [];
+  s.assinar((meta) => eventos.push(meta));
+  for (let n = 1; n <= 3; n++) {
+    const d = dadosBase();
+    d.fornecedor = { razaoSocial: `Fornecedor ${n}`, cnpj: "" };
+    d.orcamento.numero = `ORC-${n}`;
+    d.itens[0].unitarioCentavos = 1800 + n;
+    const atual = s.cotacao(c.id);
+    const ligacoes = sugerirCorrespondencias(d.itens, atual.itens).map((id) => id ?? (atual.itens.length ? "" : "novo"));
+    assert.equal(ligacoes.filter(Boolean).length, 3);
+    const plano = montarImportacao({ cotacao: atual, dados: d, correspondencia: ligacoes, fornecedores: s.estado.fornecedores,
+      arquivo: { nome: `orcamento-${n}.xml`, tamanho: 8, tipo: "application/xml" }, hash: `lote-${n}`,
+      agora: "2026-10-07T13:00:00Z", novoId: () => `n${++seq}` });
+    await s.confirmarImportacao({ cotacaoId: c.id, plano, arquivo: new Blob([`xml ${n}`]), silencioso: true });
+  }
+  assert.equal(s.cotacao(c.id).propostas.length, 3);
+  assert.equal(s.cotacao(c.id).itens.length, 3);
+  assert.equal(s.estado.fornecedores.length, 3);
+  assert.equal(s.estado.documentos.length, 3);
+  const item = s.cotacao(c.id).itens[0].id;
+  assert.deepEqual(s.cotacao(c.id).propostas.map((p) => p.precos[item]?.centavos), [1801, 1802, 1803]);
+  assert.ok(eventos.every((meta) => meta.silencioso));
+});
 test("falha ao gravar o PDF opcional desfaz XML e registro", async () => {
   const mem = criarMemoria(), s = await novoStore(mem);
   const c = s.criarCotacao({ titulo: "Hidráulica" });
