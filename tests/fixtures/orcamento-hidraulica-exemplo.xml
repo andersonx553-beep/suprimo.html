@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<orcamentoSuprimo versao="1">
+  <fornecedor>
+    <razaoSocial>Hidro Norte Materiais Ltda. (fictícia)</razaoSocial>
+    <nomeFantasia>HIDRO NORTE</nomeFantasia>
+    <cnpj>12345678000195</cnpj>
+    <telefone>(85) 3000-0101</telefone>
+    <email>contato@example.com</email>
+  </fornecedor>
+  <orcamento>
+    <numero>HN-2026-104</numero>
+    <emissao>2026-10-06</emissao>
+    <validade>2026-10-15</validade>
+  </orcamento>
+  <condicoes>
+    <prazoEntrega>até 5 dias úteis</prazoEntrega>
+    <pagamento>boleto em 30 dias</pagamento>
+    <freteTipo>CIF</freteTipo>
+    <freteCentavos>3500</freteCentavos>
+    <subtotalCentavos>107280</subtotalCentavos>
+    <totalCentavos>110780</totalCentavos>
+  </condicoes>
+  <itens>
+    <item numero="1">
+      <codigo>25010</codigo>
+      <descricao>Tubo PVC soldável 25 mm - barra 6 m</descricao>
+      <unidade>UN</unidade>
+      <quantidade>12</quantidade>
+      <unitarioCentavos>5000</unitarioCentavos>
+      <totalCentavos>60000</totalCentavos>
+    </item>
+    <item numero="2">
+      <codigo>25011</codigo>
+      <descricao>Joelho PVC soldável 25 mm - 90°</descricao>
+      <unidade>UN</unidade>
+      <quantidade>40</quantidade>
+      <unitarioCentavos>290</unitarioCentavos>
+      <totalCentavos>11600</totalCentavos>
+    </item>
+    <item numero="3">
+      <codigo>25012</codigo>
+      <descricao>Registro esfera soldável 25 mm</descricao>
+      <unidade>UN</unidade>
+      <quantidade>8</quantidade>
+      <unitarioCentavos>2480</unitarioCentavos>
+      <totalCentavos>19840</totalCentavos>
+    </item>
+    <item numero="4">
+      <codigo>25013</codigo>
+      <descricao>Luva PVC soldável 25 mm</descricao>
+      <unidade>UN</unidade>
+      <quantidade>30</quantidade>
+      <unitarioCentavos>170</unitarioCentavos>
+      <totalCentavos>5100</totalCentavos>
+    </item>
+    <item numero="5">
+      <codigo>25014</codigo>
+      <descricao>Adesivo plástico PVC - frasco 175 g</descricao>
+      <unidade>UN</unidade>
+      <quantidade>6</quantidade>
+      <unitarioCentavos>1790</unitarioCentavos>
+      <totalCentavos>10740</totalCentavos>
+    </item>
+  </itens>
+</orcamentoSuprimo>
