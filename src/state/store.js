@@ -20,6 +20,15 @@ export function criarStore(adaptador) {
   /** Roda a gravação sem travar a tela; se falhar, avisa quem assinou `aoFalhar`. */
   const persistir = (promessa) => promessa.catch((e) => falhas.forEach((fn) => fn(e)));
 
+  const aplicarDados = (lido) => {
+    const migrado = migrar({ versaoEsquema: lido.versaoEsquema, cotacoes: lido.cotacoes, fornecedores: lido.fornecedores, documentos: lido.documentos ?? [], ajustes: lido.ajustes });
+    estado.cotacoes = migrado.cotacoes;
+    estado.fornecedores = migrado.fornecedores;
+    estado.documentos = migrado.documentos ?? [];
+    estado.ajustes = { ...AJUSTES_PADRAO, ...(migrado.ajustes ?? {}) };
+    estado.pronto = true;
+  };
+
   const store = {
     estado,
     persistente: adaptador.persistente,
@@ -28,17 +37,19 @@ export function criarStore(adaptador) {
 
     async iniciar() {
       const lido = await adaptador.carregar();
-      const migrado = migrar({ versaoEsquema: lido.versaoEsquema, cotacoes: lido.cotacoes, fornecedores: lido.fornecedores, documentos: lido.documentos ?? [], ajustes: lido.ajustes });
-      estado.cotacoes = migrado.cotacoes;
-      estado.fornecedores = migrado.fornecedores;
-      estado.documentos = migrado.documentos ?? [];
-      estado.ajustes = { ...AJUSTES_PADRAO, ...(migrado.ajustes ?? {}) };
+      aplicarDados(lido);
       if (lido.versaoEsquema !== VERSAO_ATUAL) {
         await Promise.all([...estado.cotacoes.map((c) => adaptador.gravar("cotacoes", c)), ...estado.fornecedores.map((f) => adaptador.gravar("fornecedores", f))]);
       }
       await adaptador.guardarVersao?.(VERSAO_ATUAL);
       estado.pronto = true;
       emitir({ origem: "iniciar" });
+    },
+    assinarSincronizacao() {
+      return adaptador.observar?.((lido) => {
+        aplicarDados(lido);
+        emitir({ origem: "sincronizacao" });
+      }, (erro) => falhas.forEach((fn) => fn(erro))) ?? (() => {});
     },
 
     /** Busca por número (COT-0001) ou por id. */

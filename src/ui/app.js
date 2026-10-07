@@ -19,23 +19,26 @@ const AREAS = [
 
 const navegacao = (classe) => html`<nav class="${classe}" aria-label="Áreas do sistema">${AREAS.map((a) => html`<a class="navegacao__link" href="${a.href}" data-area="${a.id}">${icone(a.icone, 20)}<span>${a.rotulo}</span><span class="navegacao__cont" data-cont="${a.id}"></span></a>`)}</nav>`;
 
-export function iniciarApp(raiz, store) {
+export function iniciarApp(raiz, store, { usuario, sair } = {}) {
   montar(raiz, html`
     <a class="pular" href="#principal">Pular para o conteúdo</a>
     <header class="topo"><div class="topo__interno">
       <a class="marca" href="#/cotacoes" aria-label="Suprimo, ir para Cotações"><span class="marca__logo">${icone("logo", 20)}</span><span><span class="marca__nome">Suprimo</span><span class="marca__sub">Central de cotações</span></span></a>
       ${navegacao("navegacao navegacao--topo")}
+      <span class="conta-ativa" title="Conta conectada">${usuario?.email ?? ""}</span>
+      <button class="botao botao--peq" data-sair> Sair </button>
       <button class="botao-icone botao-icone--caixa topo__tema" data-tema aria-label="Alternar entre tema claro e escuro"></button>
     </div></header>
     <main id="principal" class="principal" tabindex="-1"></main>
     ${navegacao("navegacao navegacao--base")}
-    <footer class="rodape">Os dados ficam salvos neste navegador. Confira preços, prazos e cadastro direto com cada fornecedor. CNPJ: <a href="https://brasilapi.com.br" target="_blank" rel="noopener">BrasilAPI</a> · <span class="mono">Versão ${VERSAO}</span> (${NOVIDADE})</footer>`);
+    <footer class="rodape">Cotações, fornecedores e ajustes sincronizam pelo Firestore. PDFs, XMLs e imagens sincronizam pelo Cloudflare R2. Confira preços, prazos e cadastro direto com cada fornecedor. CNPJ: <a href="https://brasilapi.com.br" target="_blank" rel="noopener">BrasilAPI</a> · <span class="mono">Versão ${VERSAO}</span> (${NOVIDADE})</footer>`);
 
   const principal = raiz.querySelector("#principal");
   const botaoTema = raiz.querySelector("[data-tema]");
   const pintarTema = () => montar(botaoTema, html`${icone(temaEfetivo() === "escuro" ? "sol" : "lua", 18)}`);
   pintarTema();
   botaoTema.addEventListener("click", () => { aplicarTema(temaEfetivo() === "escuro" ? "claro" : "escuro"); pintarTema(); });
+  raiz.querySelector("[data-sair]").addEventListener("click", () => sair?.());
 
   let limpar = () => {};
   let ultimaRota = "";
@@ -56,7 +59,7 @@ export function iniciarApp(raiz, store) {
 
   window.addEventListener("hashchange", () => desenhar(false));
   store.assinar((meta) => { if (!meta.silencioso) desenhar(true); });
-  store.aoFalhar(() => avisar("Não foi possível salvar no navegador. Exporte um backup em Ajustes."));
+  store.aoFalhar((erro) => avisar(`Falha ao sincronizar com o Firestore. Confira sua conexão. ${erro?.message ?? ""}`));
   if (!store.persistente) avisar("Este navegador não guarda dados. O que você fizer vale só até fechar a página.");
   if (!location.hash) history.replaceState(null, "", "#/cotacoes");
   desenhar(false);

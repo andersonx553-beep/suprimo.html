@@ -41,7 +41,7 @@ export function telaAjustes(raiz, { store }) {
         </div>
       </section>
       <section class="cartao"><h2 class="cartao__titulo">Dados e backup</h2>
-        <p class="cartao__nota">Tudo fica salvo neste navegador. O backup leva cotações, fornecedores e ajustes; os PDFs e imagens anexados às propostas ficam só aqui.</p>
+        <p class="cartao__nota">Cotações, fornecedores e ajustes ficam sincronizados no Firestore. Os anexos são sincronizados pelo armazenamento privado do Cloudflare R2. O backup JSON não inclui os arquivos.</p>
         <div class="acoes-linha">
           <button class="botao" data-exportar>${icone("baixar", 16)}Exportar backup</button>
           <label class="botao">${icone("subir", 16)}Importar backup<input type="file" accept="application/json,.json" hidden data-importar></label>
@@ -69,13 +69,13 @@ export function telaAjustes(raiz, { store }) {
     if (!arquivo) return;
     let dados;
     try { dados = lerBackup(await arquivo.text()); } catch (erro) { avisar(erro.message); return; }
-    const ok = await confirmar({ titulo: "Importar este backup?", texto: `O arquivo tem ${dados.cotacoes.length} cotações e ${dados.fornecedores.length} fornecedores. Tudo o que está neste navegador será substituído.`, rotulo: "Importar e substituir", perigo: true });
+    const ok = await confirmar({ titulo: "Importar este backup?", texto: `O arquivo tem ${dados.cotacoes.length} cotações e ${dados.fornecedores.length} fornecedores. Os registros atuais na nuvem serão substituídos em todos os dispositivos.`, rotulo: "Importar e substituir", perigo: true });
     if (ok) { await store.importar(dados); avisar("Backup importado."); }
   });
   raiz.querySelector("[data-demo]")?.addEventListener("click", async () => { await store.carregarExemplo(); avisar("Demonstração carregada. Os dados de exemplo estão marcados."); });
   raiz.querySelector("[data-sem-exemplo]")?.addEventListener("click", async () => { await store.removerExemplo(); avisar("Dados de demonstração removidos."); });
   raiz.querySelector("[data-apagar]").addEventListener("click", async () => {
-    const ok = await confirmar({ titulo: "Apagar todos os dados?", texto: "Cotações, fornecedores, propostas e ajustes serão apagados deste navegador. Exporte um backup antes se quiser guardar.", rotulo: "Apagar tudo", perigo: true });
+    const ok = await confirmar({ titulo: "Apagar todos os dados?", texto: "Cotações, fornecedores, propostas e ajustes serão apagados da nuvem em todos os dispositivos. Exporte um backup antes se quiser guardar.", rotulo: "Apagar tudo", perigo: true });
     if (ok) { await store.apagarTudo(); avisar("Dados apagados."); }
   });
   return () => {};

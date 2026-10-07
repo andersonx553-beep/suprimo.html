@@ -1,4 +1,13 @@
 /* ===== marca ===== */
+.acesso { min-block-size: 100dvh; display: grid; place-items: center; padding: var(--esp-4); }
+.acesso__cartao { inline-size: min(30rem, 100%); display: grid; justify-items: start; gap: var(--esp-4); padding: var(--esp-8); border: var(--borda); border-radius: var(--raio-4); background: var(--cor-superficie); box-shadow: var(--sombra-2); }
+.acesso__cartao .marca__logo { display: grid; place-items: center; font-size: var(--texto-lg); font-weight: 800; }
+.acesso__texto { color: var(--cor-texto-2); }
+.acesso__erro { color: var(--cor-perigo); overflow-wrap: anywhere; }
+.acesso__botao { inline-size: 100%; }
+.acesso__secundario, .acesso__exportar { inline-size: 100%; white-space: normal; }
+.acesso__conta { overflow-wrap: anywhere; }
+
 .marca { display: flex; align-items: center; gap: var(--esp-3); flex: none; }
 .marca__logo { inline-size: 2.1rem; block-size: 2.1rem; display: grid; place-items: center; border-radius: var(--raio-2); background: var(--cor-destaque); color: var(--cor-destaque-tinta); box-shadow: 0 6px 18px -8px var(--cor-destaque); }
 .marca__nome { display: block; font-weight: 800; letter-spacing: -0.02em; font-size: var(--texto-lg); line-height: 1; }
