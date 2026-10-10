@@ -253,29 +253,29 @@ const prepara = async (s, hash = "h1") => {
   return { c, plano };
 };
 
-test("confirmar: grava proposta, fornecedor novo, convite 'respondeu', documento e o PDF", async () => {
-  const s = await novoStore();
+test("confirmar: grava dados da proposta e hash do arquivo sem enviar o original", async () => {
+  const mem = criarMemoria(), s = await novoStore(mem);
   const { c, plano } = await prepara(s);
-  await s.confirmarImportacao({ cotacaoId: c.id, plano, arquivo: new Blob(["%PDF-1.4"]) });
+  mem.salvarAnexo = () => { throw new Error("A importação não deve usar armazenamento de anexos."); };
+  await s.confirmarImportacao({ cotacaoId: c.id, plano });
   const cot = s.cotacao(c.id);
   assert.equal(cot.propostas.length, 1);
   assert.equal(cot.propostas[0].status, "confirmada");
   assert.equal(cot.convites[0].situacao, "respondeu");
   assert.equal(s.estado.fornecedores.length, 1);
   assert.equal(s.estado.documentos.length, 1);
-  assert.ok(await s.lerAnexo(plano.documento.anexoId));
+  assert.equal(cot.propostas[0].anexos.length, 0);
+  assert.equal(plano.documento.anexoId, undefined);
 });
-test("XML e PDF do mesmo orçamento ficam na mesma proposta e o PDF abre primeiro", async () => {
+test("XML e PDF usados na conferência não são arquivados na proposta", async () => {
   const s = await novoStore();
   const c = s.criarCotacao({ titulo: "Hidráulica" });
   const plano = montarImportacao({ cotacao: c, dados: dadosBase(), correspondencia: ["novo", "novo", "novo"], fornecedores: [],
     arquivo: { nome: "orcamento.xml", tamanho: 20, tipo: "application/xml" },
     anexoPdf: { nome: "original.pdf", tamanho: 8, tipo: "application/pdf" }, hash: "xml-pdf", agora: "2026-10-07T12:00:00Z", novoId: () => `n${++seq}` });
-  await s.confirmarImportacao({ cotacaoId: c.id, plano, arquivo: new Blob(["<orcamentoSuprimo/>"]), anexoPdf: new Blob(["%PDF-1.4"]) });
-  assert.deepEqual(s.cotacao(c.id).propostas[0].anexos.map((a) => a.nome), ["original.pdf", "orcamento.xml"]);
-  assert.equal((await s.lerAnexo(plano.anexoPdfMeta.id)).size, 8);
-  assert.ok(await s.lerAnexo(plano.documento.anexoId));
-  assert.equal(s.estado.documentos[0].anexoId, plano.documento.anexoId);
+  await s.confirmarImportacao({ cotacaoId: c.id, plano });
+  assert.deepEqual(s.cotacao(c.id).propostas[0].anexos, []);
+  assert.equal(s.estado.documentos[0].anexoId, undefined);
 });
 test("três XMLs na mesma cotação criam três propostas sem duplicar itens", async () => {
   const s = await novoStore();
@@ -303,18 +303,15 @@ test("três XMLs na mesma cotação criam três propostas sem duplicar itens", a
   assert.deepEqual(s.cotacao(c.id).propostas.map((p) => p.precos[item]?.centavos), [1801, 1802, 1803]);
   assert.ok(eventos.every((meta) => meta.silencioso));
 });
-test("falha ao gravar o PDF opcional desfaz XML e registro", async () => {
+test("importação não depende de R2/Cloudflare para gravar proposta", async () => {
   const mem = criarMemoria(), s = await novoStore(mem);
   const c = s.criarCotacao({ titulo: "Hidráulica" });
   const plano = montarImportacao({ cotacao: c, dados: dadosBase(), correspondencia: ["novo", "novo", "novo"], fornecedores: [],
-    arquivo: { nome: "orcamento.xml", tamanho: 3, tipo: "application/xml" },
-    anexoPdf: { nome: "original.pdf", tamanho: 8, tipo: "application/pdf" }, hash: "xml-falha", agora: "2026-10-07T12:00:00Z", novoId: () => `n${++seq}` });
-  const salvar = mem.salvarAnexo;
-  mem.salvarAnexo = (id, blob) => id === plano.anexoPdfMeta.id ? Promise.reject(Error("sem espaço")) : salvar(id, blob);
-  await assert.rejects(() => s.confirmarImportacao({ cotacaoId: c.id, plano, arquivo: new Blob(["xml"]), anexoPdf: new Blob(["pdf"]) }), /sem espaço/);
-  assert.equal(await mem.lerAnexo(plano.documento.anexoId), undefined);
-  assert.equal(s.estado.documentos.length, 0);
-  assert.equal(s.cotacao(c.id).propostas.length, 0);
+    arquivo: { nome: "orcamento.xml", tamanho: 3, tipo: "application/xml" }, hash: "xml-sem-r2", agora: "2026-10-07T12:00:00Z", novoId: () => `n${++seq}` });
+  mem.salvarAnexo = () => Promise.reject(Error("R2 indisponível"));
+  await s.confirmarImportacao({ cotacaoId: c.id, plano });
+  assert.equal(s.estado.documentos.length, 1);
+  assert.equal(s.cotacao(c.id).propostas.length, 1);
 });
 test("PDF duplicado: segundo import com o mesmo hash é recusado e nada é gravado", async () => {
   const s = await novoStore();

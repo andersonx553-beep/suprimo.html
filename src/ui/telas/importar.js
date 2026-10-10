@@ -40,13 +40,12 @@ export function telaImportar(raiz, { store, rota }) {
     return () => {};
   }
 
-  const e = { fase: "escolher", erro: null, arquivo: null, bytes: null, tipo: null, hash: "", url: "", pdfAnexo: null, pdfBytes: null, pdfUrl: "", dados: null, correspondencia: [], automaticas: 0, sujo: false, duplicidade: null, abort: null, progresso: null, lote: [], posicao: 0, confirmados: 0 };
+  const e = { fase: "escolher", erro: null, arquivo: null, bytes: null, tipo: null, hash: "", url: "", dados: null, correspondencia: [], automaticas: 0, sujo: false, duplicidade: null, abort: null, progresso: null, lote: [], posicao: 0, confirmados: 0 };
   let ativo = true;
   const limparUrl = () => { if (e.url) URL.revokeObjectURL(e.url); e.url = ""; };
-  const limparPdfUrl = () => { if (e.pdfUrl) URL.revokeObjectURL(e.pdfUrl); e.pdfUrl = ""; };
   const emLote = () => e.lote.length > 1;
   const proximo = () => {
-    limparUrl(); limparPdfUrl();
+    limparUrl();
     if (++e.posicao < e.lote.length) receber(e.lote[e.posicao]);
     else ir(voltarPara);
   };
@@ -125,7 +124,7 @@ export function telaImportar(raiz, { store, rota }) {
       e.correspondencia = sugerirCorrespondencias(dados.itens, cot.itens).map((id) => id ?? (cot.itens.length ? "" : "novo"));
       e.automaticas = cot.itens.length ? e.correspondencia.filter(Boolean).length : 0;
       limparUrl(); e.url = URL.createObjectURL(new Blob([bytes], { type: tipo }));
-      e.fase = "conferir"; e.sujo = false; e.pdfAnexo = null; e.pdfBytes = null; limparPdfUrl();
+      e.fase = "conferir"; e.sujo = false;
       desenhar();
     } catch (erro) {
       if (!ativo || controle.signal.aborted) return;
@@ -199,12 +198,6 @@ export function telaImportar(raiz, { store, rota }) {
       <div class="conferencia"><div class="conferencia__grade">
         <aside class="conferencia__pdf" aria-label="Arquivo do orçamento ${e.arquivo.name}"><div class="conferencia__paginas" data-paginas></div></aside>
         <div class="conferencia__dados">
-          ${e.tipo === "application/xml" ? html`<section class="cartao"><h2 class="cartao__titulo">PDF original para consulta</h2>
-            <p class="cartao__nota">Anexe o PDF deste mesmo orçamento. Ele ficará junto do XML na proposta para seu chefe visualizar as páginas. Confira se os dados dos dois arquivos correspondem.</p>
-            <label class="botao">Anexar PDF original<input type="file" accept="application/pdf,.pdf" hidden data-pdf-anexo></label>
-            <p class="cartao__nota" data-pdf-nome>Nenhum PDF anexado. Você também poderá anexá-lo depois na proposta.</p>
-            <button class="botao" data-ver-anexo hidden>Ver PDF anexado</button>
-          </section>` : ""}
           <section class="cartao"><h2 class="cartao__titulo">Fornecedor</h2>
             <div class="formulario__grade">
               ${campo({ rotulo: "Razão social", caminho: "fornecedor.razaoSocial" })}${campo({ rotulo: "Nome fantasia", caminho: "fornecedor.nomeFantasia" })}
@@ -258,7 +251,6 @@ export function telaImportar(raiz, { store, rota }) {
   /** Mostra as páginas do PDF ao lado dos dados. Desenhado pelo próprio pdfjs, igual em qualquer navegador (inclusive celular). */
   async function desenharArquivo(destino) {
     if (!destino || !destino.clientWidth) return;
-    if (e.pdfBytes) return desenharPdf(destino, e.pdfBytes, e.pdfAnexo.name);
     if (e.tipo === "application/xml") {
       const pre = document.createElement("pre");
       pre.textContent = new TextDecoder().decode(e.bytes);
@@ -377,26 +369,6 @@ export function telaImportar(raiz, { store, rota }) {
       e.sujo = true; redesenharItens(); atualizarAlertas(); atualizarSugestoes();
     });
     raiz.querySelector("[data-ver-pdf]").addEventListener("click", () => window.open(e.url, "_blank", "noopener"));
-    raiz.querySelector("[data-ver-anexo]")?.addEventListener("click", () => { if (e.pdfUrl) window.open(e.pdfUrl, "_blank", "noopener"); });
-    raiz.querySelector("[data-pdf-anexo]")?.addEventListener("change", async (evento) => {
-      const arquivo = evento.target.files?.[0];
-      if (!arquivo) return;
-      if (!/\.pdf$/i.test(arquivo.name) || arquivo.size > 25 * 1024 * 1024) { avisar("Anexe um PDF de até 25 MB."); return; }
-      const bytes = new Uint8Array(await arquivo.arrayBuffer());
-      if (!ativo || e.fase !== "conferir") return;
-      if (!pareceUmPdf(bytes)) { avisar("O anexo não é um PDF válido."); return; }
-      try {
-        const pdfjs = await carregarPdfjs();
-        const tarefa = pdfjs.getDocument({ data: bytes.slice(), useSystemFonts: true, isEvalSupported: false });
-        await tarefa.promise; await tarefa.destroy();
-      } catch { avisar("Não foi possível abrir o PDF anexado. Confira se ele não tem senha ou está corrompido."); return; }
-      e.pdfAnexo = arquivo; e.pdfBytes = bytes; e.sujo = true;
-      limparPdfUrl(); e.pdfUrl = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-      raiz.querySelector("[data-pdf-nome]").textContent = `PDF anexado: ${arquivo.name}`;
-      raiz.querySelector("[data-ver-anexo]").hidden = false;
-      const destino = raiz.querySelector("[data-paginas]");
-      destino.replaceChildren(); desenharPdf(destino, bytes, arquivo.name);
-    });
     raiz.querySelector("[data-baixar-xml]").addEventListener("click", () => {
       try {
         const nome = `orcamento-${String(cot.numero).replace(/[^a-z\d-]/gi, "_")}.xml`;
@@ -408,7 +380,7 @@ export function telaImportar(raiz, { store, rota }) {
   }
 
   async function cancelar() {
-    if (e.sujo && !(await confirmar({ titulo: "Descartar esta conferência?", texto: "Você alterou dados ou anexou um PDF. Nada foi salvo e as mudanças serão perdidas.", rotulo: "Descartar", perigo: true }))) return;
+    if (e.sujo && !(await confirmar({ titulo: "Descartar esta conferência?", texto: "Você alterou dados. Nada foi salvo e as mudanças serão perdidas.", rotulo: "Descartar", perigo: true }))) return;
     if (emLote()) proximo(); else ir(voltarPara);
   }
 
@@ -430,16 +402,16 @@ export function telaImportar(raiz, { store, rota }) {
     }
     const plano = montarImportacao({ cotacao: cot, dados: d, correspondencia: e.correspondencia, fornecedores: store.estado.fornecedores,
       arquivo: { nome: e.arquivo.name, tamanho: e.arquivo.size, tipo: e.tipo },
-      anexoPdf: e.pdfAnexo ? { nome: e.pdfAnexo.name, tamanho: e.pdfAnexo.size, tipo: "application/pdf" } : null,
       hash: e.hash, agora: new Date().toISOString(), novoId });
     const botao = raiz.querySelector("[data-confirmar]");
     botao.disabled = true;
     try {
-      await store.confirmarImportacao({ cotacaoId: cot.id, plano, arquivo: new Blob([e.bytes], { type: e.tipo }),
-        anexoPdf: e.pdfBytes ? new Blob([e.pdfBytes], { type: "application/pdf" }) : null, silencioso: emLote() });
+      await store.confirmarImportacao({ cotacaoId: cot.id, plano, silencioso: emLote() });
     } catch (erro) {
       botao.disabled = false;
-      avisar(erro.message === "Este orçamento já foi importado." ? erro.message : "Não foi possível salvar o orçamento. Nada foi gravado. Tente de novo.");
+      console.error("Falha ao salvar orçamento:", erro);
+      const detalhe = erro?.code ? `${erro.code}: ` : "";
+      avisar(erro.message === "Este orçamento já foi importado." ? erro.message : `Não foi possível salvar o orçamento. ${detalhe}${erro?.message || "Confira a conexão e as permissões do Firestore."}`);
       return;
     }
     cot = store.cotacao(rota.numero);
@@ -455,5 +427,5 @@ export function telaImportar(raiz, { store, rota }) {
     else desenharEscolher();
   }
   desenhar();
-  return () => { ativo = false; e.abort?.abort(); limparUrl(); limparPdfUrl(); };
+  return () => { ativo = false; e.abort?.abort(); limparUrl(); };
 }
