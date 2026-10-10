@@ -1,40 +1,64 @@
-// Mapa para impressão/PDF. A assinatura do síndico aprova a cotação selecionada;
-// o pedido ao fornecedor ocorre depois, fora do Suprimo.
+// Mapa Aquaville para impressão/PDF em uma página A4 paisagem.
+// A assinatura do síndico aprova a cotação; o pedido é feito depois, fora do Suprimo.
 import { html } from "../../lib/html.js";
 import { reais, dataBr, hoje, numeroBr } from "../../lib/formato.js";
 import { resumirDecisao } from "../../domain/decisao.js";
 import { tabelaMapa, avisosDoMapa } from "./tabela-mapa.js";
 
+const SOLICITANTE_PADRAO = "Condomínio Edifício Aqua Ville";
+const DESTINO_PADRAO = "Av. Mar Mediterrâneo, 202 - Porto das Dunas, Aquiraz/CE";
+
 export function folhaImpressao({ cot, res, forn, ajustes }) {
   const resumo = resumirDecisao(res, cot.decisao);
   const registrada = ["decidida", "concluida"].includes(cot.status) && resumo.completo;
   const nome = (id) => forn.get(id)?.nome ?? "Fornecedor";
-  let decisao = html`<p class="folha__nota">RASCUNHO: fornecedor ainda não selecionado para aprovação. Registre a escolha na aba Decisão antes de colher a assinatura.</p>`;
+  const solicitante = ajustes.empresa?.nome || SOLICITANTE_PADRAO;
+  const cotacaoFeitaPor = cot.solicitante || ajustes.solicitante || "";
+  const destino = cot.destino || ajustes.destinoPadrao || DESTINO_PADRAO;
+  const pagamento = registrada
+    ? cot.decisao.modo === "unico" ? resumo.coluna?.pagamento || "não informado" : "Conforme fornecedores e itens escolhidos no mapa comparativo"
+    : "A definir após escolha da proposta";
+  const escala = Math.min(1, 22 / Math.max(cot.itens.length, 22), 3 / Math.max(res.colunas.length, 3));
+  const avisos = avisosDoMapa(res);
+  const originais = cot.propostas.filter((p) => p.orcamento?.itens?.length);
+  let decisao = html`<p class="folha__rascunho"><strong>RASCUNHO</strong> · Selecione uma proposta na aba Decisão antes de colher a aprovação.</p>`;
+
   if (registrada && cot.decisao.modo === "unico") {
     const col = resumo.coluna;
-    decisao = html`<p><strong>Fornecedor selecionado para aprovação do síndico: ${nome(col.fornecedorId)}</strong></p>
-      <p>Itens ${reais(col.subtotal)} · desconto ${reais(col.descontoCentavos)} · frete ${reais(col.freteCentavos)} · <strong>total ${reais(resumo.custoTotal)}</strong></p>
-      <p>Pagamento: ${col.pagamento || "não informado"} · Validade: ${col.validade ? dataBr(col.validade) : col.validadeTexto || "não informada"}${col.freteTexto ? html` · Condição de frete: ${col.freteTexto}` : ""}</p>`;
+    decisao = html`
+      <div class="folha__decisao-destaque"><strong>Fornecedor indicado para aprovação: ${nome(col.fornecedorId)}</strong><strong>Total final: ${reais(resumo.custoTotal)}</strong></div>
+      <p>Itens ${reais(col.subtotal)} · desconto ${reais(col.descontoCentavos)} · frete ${col.fretePendente ? "a confirmar" : reais(col.freteCentavos)}${col.freteTexto ? ` (${col.freteTexto})` : ""}</p>
+      <p>Entrega ${col.prazoEntregaDias != null ? `${numeroBr(col.prazoEntregaDias)} ${col.prazoEntregaDias === 1 ? "dia" : "dias"}` : "não informada"} · Validade ${col.validade ? dataBr(col.validade) : col.validadeTexto || "não informada"}</p>`;
   } else if (registrada) {
-    decisao = html`<p><strong>Fornecedores selecionados por item</strong> · total ${reais(resumo.custoTotal)} (frete de cada fornecedor incluído)</p>
-      <ul>${resumo.divisao.escolhas.map((e) => html`<li>${e.item.descricao} (${numeroBr(e.item.quantidade)} ${e.item.unidade}): ${nome(e.fornecedorId)}, ${reais(e.centavos)} por unidade · ${reais(e.total)} no item</li>`)}</ul>`;
+    decisao = html`
+      <div class="folha__decisao-destaque"><strong>Compra dividida · fornecedores escolhidos marcados na tabela</strong><strong>Total final: ${reais(resumo.custoTotal)}</strong></div>
+      <p>${resumo.divisao.escolhas.length} itens · ${resumo.divisao.fretes.length} fornecedores · fretes incluídos uma vez por fornecedor.</p>`;
   }
-  const originais = cot.propostas.filter((p) => p.orcamento?.itens?.length);
+
   return html`
-    <header class="folha__cab">
-      <div><strong>${ajustes.empresa?.nome || "Almoxarifado"}</strong>${ajustes.empresa?.cnpj ? html` · ${ajustes.empresa.cnpj}` : ""}<h1>Mapa comparativo para aprovação do síndico</h1></div>
-      <dl><dt>Cotação</dt><dd>${cot.numero}</dd><dt>Emitido em</dt><dd>${dataBr(hoje())}</dd></dl>
-    </header>
-    <p class="folha__titulo">${cot.titulo}${cot.exemplo ? " (EXEMPLO)" : ""} · Solicitante: ${cot.solicitante || ajustes.solicitante || "—"}${cot.destino ? html` · Destino: ${cot.destino}` : ""}</p>
-    ${avisosDoMapa(res).map((a) => html`<p class="folha__aviso">${a}</p>`)}
-    ${res.colunas.length ? tabelaMapa(res, forn) : html`<p class="folha__nota">Nenhuma proposta lançada.</p>`}
-    ${originais.length ? html`<section class="folha__originais"><h2>Descrições conforme os orçamentos recebidos</h2>
-      <p class="folha__nota">Confirme a equivalência técnica entre marcas e modelos antes de aprovar. Valores comparados por item da cotação após conferência.</p>
-      ${originais.map((p) => html`<div class="folha__origem"><strong>${nome(p.fornecedorId)} · orçamento ${p.orcamento.numero || "sem número"}</strong>
-        <ol>${p.orcamento.itens.map((it) => html`<li>${it.descricao} · ${numeroBr(it.quantidade ?? 0)} ${it.unidade ?? ""} · ${reais(it.unitarioCentavos)} / un.</li>`)}</ol></div>`)}</section>` : ""}
-    <section class="folha__decisao"><h2>Seleção para aprovação</h2>${decisao}${registrada && cot.decisao?.justificativa ? html`<p><strong>Justificativa:</strong> ${cot.decisao.justificativa}</p>` : ""}</section>
-    ${registrada ? html`<section class="folha__aprovacao">
-      <p>Ao assinar, aprovo a cotação e o(s) fornecedor(es) selecionado(s) acima. O pedido será feito pelo responsável ao fornecedor, fora do Suprimo.</p>
-      <div class="folha__assinaturas"><div><span></span>Nome do síndico</div><div><span></span>Assinatura do síndico</div><div><span></span>Data</div></div>
-    </section>` : ""}`;
+    <article class="folha__documento" data-itens="${cot.itens.length}" style="--folha-escala: ${escala}">
+      <header class="folha__cab">
+        <img class="folha__logo" src="assets/aquaville-logo.png" alt="Aquaville" />
+        <div class="folha__identidade"><p>AQUAVILLE · COTAÇÃO</p><h1>Mapa comparativo para aprovação</h1></div>
+        <dl class="folha__numero"><dt>Nº da cotação</dt><dd>${cot.numero}</dd><dt>Emitido em</dt><dd>${dataBr(hoje())}</dd></dl>
+      </header>
+      <section class="folha__dados" aria-label="Dados da cotação">
+        <div><strong>Objeto</strong><span>${cot.titulo}${cot.exemplo ? " · EXEMPLO" : ""}</span></div>
+        <div><strong>Solicitante</strong><span>${solicitante}</span></div>
+        <div class="folha__feito-por"><strong>Cotação feita por</strong><span>${cotacaoFeitaPor || ""}</span><i aria-hidden="true"></i></div>
+      </section>
+      ${avisos.length ? html`<p class="folha__avisos"><strong>Conferir:</strong> ${avisos.join(" · ")}</p>` : ""}
+      ${res.colunas.length ? tabelaMapa(res, forn, { propostas: cot.propostas, decisao: cot.decisao }) : html`<p class="folha__rascunho">Nenhuma proposta foi lançada.</p>`}
+      ${originais.length ? html`<p class="folha__referencias"><strong>Orçamentos comparados:</strong> ${originais.map((p) => `${nome(p.fornecedorId)} · nº ${p.orcamento.numero || "não informado"}`).join(" · ")}. Descrições originais permanecem nos documentos recebidos.</p>` : ""}
+      <section class="folha__decisao" aria-label="Resumo da decisão"><h2>Escolha para aprovação</h2>${decisao}${registrada && cot.decisao?.justificativa ? html`<p><strong>Justificativa:</strong> ${cot.decisao.justificativa}</p>` : ""}</section>
+      <section class="folha__condicoes" aria-label="Informações da cotação">
+        <div><strong>Forma de pagamento</strong><span>${pagamento}</span></div>
+        <div><strong>Destino</strong><span>${destino}</span></div>
+      </section>
+      ${registrada ? html`<section class="folha__aprovacao">
+        <p>Ao dar os vistos abaixo, os responsáveis aprovam a cotação e o fornecedor ou fornecedores indicados. O pedido será feito posteriormente pelo responsável.</p>
+        <div class="folha__assinaturas"><div><span></span>Rubrica</div><div><span></span>Visto supervisor</div><div><span></span>Visto síndico</div></div>
+      </section>` : ""}
+      <footer class="folha__rodape">Menores preços por item e proposta sugerida consideram os dados informados. Confirme equivalência técnica, validade, prazo e condições antes de aprovar.</footer>
+    </article>`;
 }

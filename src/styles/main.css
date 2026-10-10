@@ -8,3 +8,7 @@
 @import url("components.css") layer(components);
 @import url("utilities.css") layer(utilities);
 @import url("print.css") layer(print) print;
+
+/* A orientação da folha precisa ficar fora da camada de impressão para que
+   navegadores móveis também a apliquem ao gerar o PDF. */
+@page { size: 297mm 210mm; margin: 4mm; }
