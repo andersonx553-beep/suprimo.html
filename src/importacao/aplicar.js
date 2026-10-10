@@ -49,23 +49,18 @@ export function montarImportacao({ cotacao, dados, correspondencia, fornecedores
 
   const propostaId = novoId();
   const documentoId = novoId();
-  const anexoId = novoId();
-  const anexoPdfMeta = anexoPdf ? { id: novoId(), nome: anexoPdf.nome, tipo: "application/pdf", tamanho: anexoPdf.tamanho } : null;
   const proposta = {
     id: propostaId, fornecedorId: fornecedor.id, precos,
     freteCentavos: c.freteCentavos, freteTipo: c.freteTipo ?? "", freteTexto: c.freteTexto ?? "", descontoCentavos: c.descontoCentavos ?? 0,
     prazoEntregaDias: c.prazoEntregaDias ?? null, prazoEntregaTexto: c.prazoEntrega ?? "",
     pagamento: { texto: c.pagamento ?? "", dias: c.pagamentoDias ?? null }, validade: o.validade ?? "", validadeTexto: o.validadeTexto ?? "", observacao: "",
-    anexos: [
-      ...(anexoPdfMeta ? [anexoPdfMeta] : []),
-      { id: anexoId, nome: arquivo.nome, tipo: arquivo.tipo || "application/pdf", tamanho: arquivo.tamanho },
-    ],
+    anexos: [],
     status: "confirmada", origem: "importada", documentoId,
     orcamento: { numero: o.numero ?? "", emissao: o.emissao ?? "", vendedor: o.vendedor ?? "", subtotalCentavos: c.subtotalCentavos ?? null, totalCentavos: c.totalCentavos ?? null, itens: linhas },
   };
   const documento = {
     id: documentoId, fileHash: hash, nome: arquivo.nome, tamanho: arquivo.tamanho, cnpj, numeroOrcamento: o.numero ?? "",
-    cotacaoId: cotacao.id, propostaId, anexoId, importadoEm: agora,
+    cotacaoId: cotacao.id, propostaId, importadoEm: agora,
   };
-  return { fornecedor, fornecedorNovo: !existente, novosItens, proposta, documento, anexoPdfMeta, avisos, ligados: usados.size };
+  return { fornecedor, fornecedorNovo: !existente, novosItens, proposta, documento, avisos, ligados: usados.size };
 }

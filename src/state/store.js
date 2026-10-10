@@ -121,19 +121,17 @@ export function criarStore(adaptador) {
     documentoPorHash: (hash) => estado.documentos.find((d) => d.fileHash === hash) ?? null,
 
     /**
-     * Grava tudo de uma vez: documento (hash único), arquivo, PDF opcional, fornecedor novo, itens novos, proposta e convite.
+     * Grava os dados extraídos, o hash para evitar duplicidade, fornecedor novo, proposta e convite.
      * Se algo falhar no meio, desfaz o que já foi gravado e lança o erro: não fica meia importação.
-     * @param {{cotacaoId:string, plano:ReturnType<typeof import('../importacao/aplicar.js').montarImportacao>, arquivo:Blob, anexoPdf?:Blob|null, silencioso?:boolean}} entrada
+     * Arquivos de origem servem para leitura e não são enviados nem arquivados.
+     * @param {{cotacaoId:string, plano:ReturnType<typeof import('../importacao/aplicar.js').montarImportacao>, silencioso?:boolean}} entrada
      */
-    async confirmarImportacao({ cotacaoId, plano, arquivo, anexoPdf = null, silencioso = false }) {
+    async confirmarImportacao({ cotacaoId, plano, silencioso = false }) {
       const cot = store.cotacao(cotacaoId);
-      if (Boolean(plano.anexoPdfMeta) !== Boolean(anexoPdf)) throw new Error("O PDF anexado não corresponde ao plano de importação.");
       try { await adaptador.gravar("documentos", plano.documento); }
       catch (e) { throw e?.name === "ConstraintError" ? new Error("Este orçamento já foi importado.") : e; }
       const copia = structuredClone(cot);
       try {
-        await adaptador.salvarAnexo(plano.documento.anexoId, arquivo);
-        if (plano.anexoPdfMeta) await adaptador.salvarAnexo(plano.anexoPdfMeta.id, anexoPdf);
         if (plano.fornecedorNovo) await adaptador.gravar("fornecedores", plano.fornecedor);
         copia.itens.push(...plano.novosItens);
         copia.propostas.push(plano.proposta);
@@ -144,8 +142,6 @@ export function criarStore(adaptador) {
         await adaptador.gravar("cotacoes", copia);
       } catch (e) {
         await adaptador.apagar("documentos", plano.documento.id).catch(() => {});
-        await adaptador.apagarAnexo(plano.documento.anexoId).catch(() => {});
-        if (plano.anexoPdfMeta) await adaptador.apagarAnexo(plano.anexoPdfMeta.id).catch(() => {});
         if (plano.fornecedorNovo) await adaptador.apagar("fornecedores", plano.fornecedor.id).catch(() => {});
         throw e;
       }
