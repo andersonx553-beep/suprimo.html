@@ -1,42 +1,77 @@
-/* Folha de impressão do mapa comparativo: A4 paisagem, sem menus. Só entra no media print (ver main.css). */
-@page { size: A4 landscape; margin: 12mm; }
-body { background: #fff; color: #000; font-size: 10px; }
-body::before, .topo, .navegacao, .rodape, .aviso, .dialogo, .voltar, .cartao.cotacao { display: none; }
-.principal { padding: 0; max-inline-size: none; min-block-size: 0; display: block; }
-.folha { display: block; }
-.folha__cab { display: flex; justify-content: space-between; align-items: flex-end; border-block-end: 2px solid #000; padding-block-end: 6px; margin-block-end: 6px; }
-.folha__cab h1 { font-size: 16px; margin-block-start: 2px; }
-.folha__cab dl { display: grid; grid-template-columns: auto auto; gap: 0 10px; }
-.folha__cab dt { color: #444; text-align: end; }
-.folha__cab dd { font-weight: 700; font-family: var(--fonte-mono); }
-.folha__titulo { margin-block-end: 6px; }
-.folha__aviso { font-weight: 700; margin-block-end: 3px; }
-.folha__nota { color: #444; }
-.folha .mapa { inline-size: 100%; border-collapse: collapse; }
-.folha .mapa th, .folha .mapa td { position: static; border: 1px solid #777; padding: 2px 6px; background: #fff; color: #000; min-inline-size: 0; box-shadow: none; }
-.folha .mapa tbody tr { block-size: auto; break-inside: avoid; }
-.folha .mapa__celula[data-estado="menor"] { background: #dff5e8; outline: 2px solid #000; outline-offset: -2px; }
-.folha .mapa__celula[data-estado="menor"] .mapa__preco { color: #000; }
-.folha .mapa__celula[data-estado="nao-cotou"] { background: #eee; }
-.folha .mapa__celula[data-estado="unidade"] { background: #fff3d6; }
-.folha .mapa__sub, .folha .mapa__cnpj, .folha .mapa tfoot .mapa__item, .folha .mapa__alta { color: #333; }
-.folha .selo { color: #000; background: none; border: 1px solid #000; }
-.folha .mapa__qtd { display: table-cell; }
-.folha .mapa__item .mapa__qtd-estreita { display: none; }
-.folha .mapa__cnpj { display: block; }
-.folha__decisao { margin-block-start: 10px; break-inside: avoid; }
-.folha__decisao h2, .folha__originais h2 { font-size: 12px; margin-block-end: 3px; }
-.folha__originais { margin-block-start: 10px; }
-.folha__origem { margin-block-start: 5px; break-inside: avoid; }
-.folha__origem ol { columns: 2; margin: 3px 0 0; padding-inline-start: 20px; }
-.folha__origem li { break-inside: avoid; margin-block-end: 2px; }
-.folha__aprovacao { margin-block-start: 10px; break-inside: avoid; }
-.folha__assinaturas { display: grid; grid-template-columns: 1fr 1.3fr 0.5fr; gap: 28px; margin-block-start: 16px; break-inside: avoid; }
-.folha__assinaturas div { text-align: center; }
-.folha__assinaturas span { display: block; padding-block-start: 28px; border-block-end: 1px solid #000; margin-block-end: 3px; }
-.folha .mapa__preco { font-size: 10.5px; }
-.folha .mapa__sub, .folha .mapa__cnpj { font-size: 8.5px; }
-.folha .mapa tfoot [data-linha="total"] strong { font-size: 12px; }
-.folha .mapa__selos { margin-block-start: 1px; }
-.folha__titulo { margin-block-end: 4px; }
-.barra-acoes, .conferencia { display: none; }
+/* Mapa para assinatura em folha única. O zoom é calculado pelo número de itens. */
+@media print {
+  :root { color-scheme: light; }
+  html, body { margin: 0 !important; padding: 0 !important; width: 100%; min-height: 0; background: #fff; color: #182334; }
+  body { font: 7.2pt Arial, sans-serif; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  body::before, .topo, .navegacao, .rodape, .aviso, .dialogo, .voltar, .cartao.cotacao { display: none !important; }
+  #app, .principal { display: block !important; width: 100%; max-width: none; min-height: 0; margin: 0; padding: 0; }
+  .folha { display: block !important; width: 100%; margin: 0; padding: 0; }
+
+  .folha__documento {
+    width: 100%; margin: 0; padding: 0; color: #182334; background: #fff;
+    font: 7.2pt/1.14 Arial, sans-serif; zoom: var(--folha-escala, 1);
+    break-inside: avoid; page-break-inside: avoid;
+  }
+  .folha__cab { display: grid; grid-template-columns: 36mm 1fr auto; align-items: center; gap: 5mm; margin: 0 0 2mm; padding: 0 0 2mm; border-bottom: 1.5pt solid #e58a2b; }
+  .folha__logo { display: block; width: 35mm; height: auto; max-height: 13mm; object-fit: contain; object-position: left center; }
+  .folha__identidade p { margin: 0 0 1mm; color: #a85c17; font-size: 7pt; font-weight: 700; letter-spacing: .07em; }
+  .folha__identidade h1 { margin: 0; color: #102a56; font-size: 14pt; line-height: 1.05; }
+  .folha__numero { display: grid; grid-template-columns: auto auto; gap: 1mm 3mm; margin: 0; text-align: right; }
+  .folha__numero dt { color: #536173; }
+  .folha__numero dd { margin: 0; color: #102a56; font-weight: 700; }
+
+  .folha__dados { display: grid; grid-template-columns: 1.25fr 1fr 1.25fr; gap: 2mm; margin: 0 0 2mm; }
+  .folha__dados div { display: flex; gap: 1.5mm; min-width: 0; padding: 1.2mm 1.7mm; background: #eef3f7; border-left: 1.4pt solid #102a56; }
+  .folha__dados strong { flex: none; color: #102a56; }
+  .folha__dados span { min-width: 0; overflow-wrap: anywhere; }
+  .folha__dados .folha__feito-por { align-items: end; flex-wrap: wrap; }
+  .folha__feito-por span { flex: 1 1 auto; }
+  .folha__feito-por i { flex: 1 0 18mm; height: 2.5mm; border-bottom: .5pt solid #536173; }
+  .folha__avisos, .folha__referencias, .folha__rodape { margin: 1mm 0; color: #536173; font-size: 6.5pt; }
+  .folha__avisos { padding: 1mm 1.5mm; border-left: 1.5pt solid #e58a2b; background: #fff4e7; color: #593711; }
+
+  .folha .mapa { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 6.4pt; }
+  .folha .mapa thead { display: table-header-group; }
+  .folha .mapa th, .folha .mapa td { position: static; min-width: 0; padding: 1.1mm 1.2mm; border: .35pt solid #bdc8d5; color: #182334; box-shadow: none; overflow-wrap: anywhere; }
+  .folha .mapa thead th { background: #102a56; color: #fff; font-size: 6.2pt; line-height: 1.08; vertical-align: middle; }
+  .folha .mapa thead th:first-child { width: 25%; }
+  .folha .mapa thead th:nth-child(2) { width: 6%; }
+  .folha .mapa tbody tr { height: auto; break-inside: avoid; page-break-inside: avoid; }
+  .folha .mapa__item { text-align: left; font-weight: 600; }
+  .folha .mapa__qtd { width: 6%; text-align: center; }
+  .folha .mapa__fornecedor { text-align: center; vertical-align: top; }
+  .folha .mapa__nome { display: block; font-size: 6.4pt; }
+  .folha .mapa__cnpj, .folha .mapa__orcamento { display: block; margin-top: .7mm; color: #e5edf7; font-size: 5.7pt; }
+  .folha .mapa__selos { display: flex; justify-content: center; flex-wrap: wrap; gap: .6mm; margin-top: .6mm; }
+  .folha .selo { padding: .3mm 1mm; border: .35pt solid #d9e4f1; border-radius: 2mm; color: #fff; background: transparent; font-size: 5.4pt; }
+  .folha .mapa__celula { text-align: center; vertical-align: middle; }
+  .folha .mapa__preco { display: block; color: #182334; font-size: 6.5pt; font-weight: 700; }
+  .folha .mapa__sub { display: block; margin-top: .4mm; color: #536173; font-size: 5.7pt; }
+  .folha .mapa__celula[data-estado="menor"] { background: #dff2e5; outline: .7pt solid #31835a; outline-offset: -1pt; }
+  .folha .mapa__celula[data-estado="menor"] .mapa__preco { color: #14532d; }
+  .folha .mapa__celula[data-selecionada="true"] { box-shadow: inset 0 0 0 1.2pt #e58a2b; }
+  .folha .mapa__escolhida { display: block; margin-top: .5mm; color: #a85c17; font-size: 5.5pt; font-weight: 700; }
+  .folha .mapa__celula[data-estado="nao-cotou"] { background: #f1f3f5; }
+  .folha .mapa__celula[data-estado="unidade"] { background: #fff1d7; }
+  .folha .mapa__vazio, .folha .mapa__alta { color: #536173; font-size: 5.7pt; }
+  .folha .mapa tfoot th, .folha .mapa tfoot td { padding-block: .9mm; background: #f3f6f9; font-size: 6pt; }
+  .folha .mapa tfoot [data-linha="total"] th, .folha .mapa tfoot [data-linha="total"] td { background: #e8eef5; color: #102a56; font-weight: 700; }
+  .folha .mapa tfoot [data-linha="total"] strong { color: #102a56; font-size: 8pt; }
+
+  .folha__decisao { margin-top: 2mm; padding: 1.5mm 2mm; border-left: 1.5pt solid #102a56; background: #eef3f7; break-inside: avoid; page-break-inside: avoid; }
+  .folha__decisao h2 { margin: 0 0 1mm; color: #102a56; font-size: 7.5pt; }
+  .folha__decisao p { margin: .7mm 0 0; }
+  .folha__decisao-destaque { display: flex; justify-content: space-between; gap: 3mm; color: #102a56; }
+  .folha__rascunho { margin: 1.5mm 0; padding: 1.5mm 2mm; background: #fff4e7; color: #593711; }
+  .folha__condicoes { display: grid; grid-template-columns: 1fr 1.7fr; gap: 2mm; margin-top: 1.5mm; }
+  .folha__condicoes div { display: flex; gap: 1.5mm; min-width: 0; padding: 1.2mm 1.7mm; background: #eef3f7; border-left: 1.4pt solid #e58a2b; }
+  .folha__condicoes strong { flex: none; color: #102a56; }
+  .folha__condicoes span { min-width: 0; overflow-wrap: anywhere; }
+  .folha__aprovacao { margin-top: 1.5mm; break-inside: avoid; page-break-inside: avoid; }
+  .folha__aprovacao > p { margin: 0; color: #536173; font-size: 6.2pt; }
+  .folha__assinaturas { display: grid; grid-template-columns: 1fr 1.4fr 1.4fr; gap: 8mm; margin-top: 2mm; break-inside: avoid; }
+  .folha__assinaturas div { min-width: 0; text-align: center; color: #536173; font-size: 6.2pt; }
+  .folha__assinaturas span { display: block; height: 9mm; border-bottom: .6pt solid #536173; }
+  .folha__rodape { margin-top: 1.5mm; padding-top: 1mm; border-top: .35pt solid #d5dee8; }
+  .barra-acoes, .conferencia { display: none !important; }
+}
