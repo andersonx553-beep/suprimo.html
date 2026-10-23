@@ -108,7 +108,7 @@ export function analisarCorrespondencia(a, b) {
   if (x.familia && x.familia === y.familia) score = Math.max(score, 0.45);
   if (x.numeros.length && x.numeros.join("|") === y.numeros.join("|")) score += (1 - score) * 0.28;
   const critica = [...CRITICOS].some((t) => x.tecnicos.has(t) !== y.tecnicos.has(t));
-  if (critica) score *= 0.82;
+  if (critica) score *= 0.9;
   if (x.marca && y.marca && x.marca !== y.marca) score *= 0.96;
   score = Math.max(0, Math.min(1, score));
 
